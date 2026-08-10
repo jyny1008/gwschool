@@ -15,7 +15,8 @@
       "Bash(python3 scripts/build_data.py)",
       "Bash(python3 -c \"import json; d=json.load\\(open\\('data.json',encoding='utf-8'\\)\\); print\\('records:', len\\(d\\)\\)\")",
       "Bash(python3 -c \"import yaml\")",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import json; d=json.load\\(open\\('data.json',encoding='utf-8'\\)\\); years=sorted\\(set\\(r['year'] for r in d\\)\\); print\\('data.json years:', years, 'records:', len\\(d\\)\\)\")"
     ]
   }
 }
