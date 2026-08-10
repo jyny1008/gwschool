@@ -1,0 +1,41 @@
+name: Build data.json
+
+# data/ 폴더에 엑셀 파일을 추가하거나 바꾼 뒤 main에 푸시하면(관리자 페이지의
+# 깃허브 자동 저장 기능으로 올린 경우 포함), scripts/build_data.py를 자동으로
+# 실행해서 data.json을 다시 만들고 커밋합니다. 로컬에서 스크립트를 직접
+# 실행할 필요가 없습니다.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'data/**.xlsx'
+      - 'scripts/build_data.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install openpyxl
+
+      - name: Build data.json
+        run: python3 scripts/build_data.py
+
+      - name: Commit data.json if changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Auto-build data.json from data/ folder'
+          file_pattern: data.json
