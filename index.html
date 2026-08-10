@@ -1,0 +1,2748 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>강원특별자치도 학교 현황 대시보드</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --ink:#1f2937; --sub:#6b7280; --primary:#2563eb; --primary-dark:#1d4ed8; --border:#e5e7eb; --danger:#dc2626;
+}
+*{box-sizing:border-box;}
+[hidden]{display:none !important;}
+body{margin:0;font-family:'Pretendard','Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);color:var(--ink);}
+.topbar{background:linear-gradient(135deg,#1d4ed8,#0ea5e9);color:#fff;padding:20px 28px;position:relative;}
+.admin-link-btn{position:absolute;top:18px;right:24px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.45);color:#fff;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:12px;}
+.admin-link-btn.active{background:#fff;color:#1d4ed8;font-weight:600;border-color:#fff;}
+@media (max-width:520px){ .admin-link-btn{position:static;display:inline-block;margin-top:10px;} }
+.topbar h1{margin:0 0 4px;font-size:22px;}
+.topbar .sub{margin:0 0 14px;font-size:12px;opacity:.85;}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;}
+.tab-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;}
+.tab-btn.active{background:#fff;color:#1d4ed8;font-weight:600;}
+main{padding:24px;max-width:1200px;margin:0 auto;}
+.view{display:none;}
+.view.active{display:block;}
+.filter-bar{display:flex;flex-wrap:wrap;gap:14px;background:var(--card);padding:16px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:20px;align-items:flex-end;}
+.filter-item{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--sub);}
+.filter-item.grow{flex:1;min-width:180px;}
+select,input{padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;}
+.btn{padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:14px;}
+.btn.primary{background:var(--primary);color:#fff;border-color:var(--primary);}
+.btn.primary:hover{background:var(--primary-dark);}
+.btn.danger{color:var(--danger);border-color:#fecaca;}
+.btn.small{padding:4px 10px;font-size:12px;}
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:20px;}
+.card{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.card.wide{grid-column:1/-1;}
+.card.narrow{max-width:360px;margin:40px auto;text-align:center;}
+.card h2{margin:0 0 4px;font-size:16px;}
+.card .sub{margin:0 0 12px;font-size:12px;color:var(--sub);}
+.chart-wrap{width:100%;}
+.chart-svg{width:100%;height:auto;display:block;}
+.gridline{stroke:#eef0f4;stroke-width:1;}
+.axis-line{stroke:#d1d5db;stroke-width:1;}
+.axis-label{font-size:10px;fill:#9ca3af;}
+.x-label{font-size:11px;fill:#4b5563;}
+.bar-value{font-size:11px;fill:#1f2937;font-weight:600;pointer-events:none;}
+.bar{transition:filter .12s;cursor:pointer;}
+.bar:hover{filter:brightness(0.8) saturate(1.3);}
+.point{cursor:pointer;transition:filter .12s;}
+.point:hover{filter:brightness(0.75) saturate(1.3);}
+.pie-slice{cursor:pointer;stroke:#fff;stroke-width:1;transition:filter .12s;}
+.pie-slice:hover{filter:brightness(0.85) saturate(1.3);}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-size:12px;color:var(--sub);}
+.legend-item{display:flex;align-items:center;gap:6px;}
+.legend-item i{width:10px;height:10px;border-radius:2px;display:inline-block;}
+.note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:14px 16px;border-radius:10px;margin-bottom:16px;font-size:14px;}
+.tooltip{position:fixed;z-index:50;background:#111827;color:#fff;font-size:12px;padding:8px 10px;border-radius:6px;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.2);line-height:1.5;max-width:220px;}
+.check-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+.type-toolbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;}
+.type-summary{margin:0;font-size:13px;color:var(--ink);}
+.type-download-btns{display:flex;gap:8px;}
+.rank-controls{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px;}
+.chart-download-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;}
+.dl-label{font-size:12px;color:var(--sub);margin-right:2px;}
+.upload-status{margin-top:10px;font-size:13px;color:var(--sub);white-space:pre-line;}
+.upload-status.success{color:#15803d;}
+.upload-status.error{color:var(--danger);}
+.upload-status.warn{color:#b45309;}
+.check-item{display:flex;align-items:center;gap:6px;font-size:14px;background:#f3f4f6;padding:6px 12px;border-radius:20px;cursor:pointer;user-select:none;}
+.table-wrap{overflow-x:auto;}
+.table-wrap.tall{max-height:420px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+th{background:#f9fafb;position:sticky;top:0;}
+.empty{color:var(--sub);text-align:center;}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;}
+.admin-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;align-items:center;margin-bottom:6px;}
+.error{color:var(--danger);font-size:13px;}
+.admin-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;}
+@media (max-width:600px){ .topbar h1{font-size:18px;} main{padding:14px;} }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <h1>강원특별자치도 학교 현황 대시보드</h1>
+  <p class="sub">관리자 페이지에서 업로드한 자료를 기준으로 표시됩니다</p>
+  <nav class="tabs">
+    <button class="tab-btn active" data-view="home">기본화면</button>
+    <button class="tab-btn" data-view="level" data-level="초">초등학교</button>
+    <button class="tab-btn" data-view="level" data-level="중">중학교</button>
+    <button class="tab-btn" data-view="level" data-level="고">고등학교</button>
+    <button class="tab-btn" data-view="yearchange">연도별 변화</button>
+  </nav>
+  <button class="tab-btn admin-link-btn" data-view="admin">관리자</button>
+</header>
+
+<main>
+  <section id="view-home" class="view active">
+    <div class="filter-bar">
+      <div class="filter-item">
+        <label for="f-year">기준연도</label>
+        <select id="f-year"></select>
+      </div>
+      <div class="filter-item">
+        <label for="f-region">지역</label>
+        <select id="f-region"><option value="">전체</option></select>
+      </div>
+      <div class="filter-item">
+        <label for="f-level">학교급</label>
+        <select id="f-level">
+          <option value="">전체</option>
+          <option value="초">초</option>
+          <option value="중">중</option>
+          <option value="고">고</option>
+        </select>
+      </div>
+      <div class="filter-item grow">
+        <label for="f-name">학교명</label>
+        <input id="f-name" list="school-names" placeholder="학교명을 입력하세요" autocomplete="off">
+        <datalist id="school-names"></datalist>
+      </div>
+      <div class="filter-item">
+        <label>&nbsp;</label>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-search" class="btn primary">검색</button>
+          <button id="btn-reset" class="btn">초기화</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="home-note" class="note" hidden></div>
+
+    <div id="home-results" class="chart-grid" hidden></div>
+  </section>
+
+  <section id="view-level" class="view">
+     <div class="card">
+       <h2 id="level-title">고등학교 현황</h2>
+       <p class="sub" id="level-sub"></p>
+       <div class="filter-item" style="max-width:200px;margin-bottom:12px;">
+         <label for="level-year">기준연도</label>
+         <select id="level-year"></select>
+       </div>
+
+       <h2 style="margin:0 0 4px;font-size:16px;">요약</h2>
+       <p id="level-overall-summary" class="type-summary" style="margin:0 0 20px;"></p>
+
+       <h3 style="margin:0 0 4px;font-size:15px;">시군별 학교 수</h3>
+       <div class="chart-wrap" id="level-chart-region"></div>
+
+       <h3 style="margin:16px 0 4px;font-size:15px;">시군별 학생수</h3>
+       <div class="chart-wrap" id="level-chart-region-students"></div>
+
+       <div id="type-checks" class="check-row"></div>
+       <div class="type-toolbar">
+         <p id="type-summary" class="type-summary"></p>
+         <div class="type-download-btns">
+           <button id="btn-download-csv" class="btn">CSV 다운로드</button>
+           <button id="btn-download-xls" class="btn">엑셀 다운로드</button>
+         </div>
+       </div>
+       <div class="table-wrap tall">
+         <table id="type-table">
+           <thead id="type-table-head"></thead>
+           <tbody></tbody>
+         </table>
+       </div>
+     </div>
+  </section>
+
+  <section id="view-yearchange" class="view">
+    <div class="filter-bar">
+      <div class="filter-item">
+        <label for="yc-start-year">시작연도</label>
+        <select id="yc-start-year"></select>
+      </div>
+      <div class="filter-item">
+        <label for="yc-end-year">종료연도</label>
+        <select id="yc-end-year"></select>
+      </div>
+      <div class="filter-item">
+        <label for="yc-region">지역</label>
+        <select id="yc-region"><option value="">전체</option></select>
+      </div>
+      <div class="filter-item">
+        <label for="yc-level">학교급</label>
+        <select id="yc-level">
+          <option value="">전체</option>
+          <option value="초">초</option>
+          <option value="중">중</option>
+          <option value="고">고</option>
+        </select>
+      </div>
+      <div class="filter-item grow">
+        <label for="yc-name">학교명</label>
+        <input id="yc-name" list="school-names" placeholder="학교명을 입력하세요 (선택)" autocomplete="off">
+      </div>
+      <div class="filter-item">
+        <label>&nbsp;</label>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-yc-search" class="btn primary">조회</button>
+          <button id="btn-yc-reset" class="btn">초기화</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="yc-note" class="note" hidden></div>
+
+    <div id="yc-results" class="chart-grid"></div>
+  </section>
+
+  <section id="view-admin" class="view">
+     <div id="admin-login" class="card narrow">
+        <h2>관리자 로그인</h2>
+        <p class="sub">비밀번호를 입력해 주세요.</p>
+        <input type="password" id="admin-pw" placeholder="비밀번호" style="width:100%;margin-bottom:10px;">
+        <button id="admin-login-btn" class="btn primary" style="width:100%;">로그인</button>
+        <p id="admin-login-err" class="error" hidden>비밀번호가 올바르지 않습니다.</p>
+     </div>
+     <div id="admin-panel" class="admin-panel" hidden></div>
+  </section>
+</main>
+
+<div id="tooltip" class="tooltip" hidden></div>
+
+<script>
+let BASE_SCHOOLS = window.__EMBEDDED_SCHOOLS__ || null;
+const REGION_ORDER = ["춘천시","원주시","강릉시","속초시","양양군","동해시","태백시","삼척시","홍천군","횡성군","영월군","평창군","정선군","철원군","화천군","양구군","인제군","고성군"];
+const TYPE_LIST = ["일반고","자율고","특목고","특성화고"];
+const DATA_YEAR = 2025;
+const ADMIN_PASSWORD = "gwedu2026";
+const ADMIN_PASSWORD_KEY = "gwedu_admin_pw_v1";
+const STORAGE_KEY = "gwedu_dashboard_schools_v1";
+const SETTINGS_KEY = "gwedu_dashboard_settings_v1";
+
+function getAdminPassword(){ return localStorage.getItem(ADMIN_PASSWORD_KEY) || ADMIN_PASSWORD; }
+function setAdminPassword(pw){ localStorage.setItem(ADMIN_PASSWORD_KEY, pw); }
+const PALETTE = ['#2563eb','#0ea5e9','#14b8a6','#f59e0b','#ef4444','#8b5cf6','#ec4899','#22c55e','#eab308','#6366f1'];
+const GRADE_COUNT = {'초':6, '중':3, '고':3};
+const LEVEL_NAMES = {'초':'초등학교', '중':'중학교', '고':'고등학교'};
+
+function shortRegion(r){ return r.replace(/(시|군)$/,''); }
+
+function normalizeSchool(s){
+  const classes = Object.assign({total:0,g1:0,g2:0,g3:0,g4:0,g5:0,g6:0,special:0}, s.classes || {});
+  const students = Object.assign({total:0,g1:0,g2:0,g3:0,g4:0,g5:0,g6:0,male:0,female:0}, s.students || {});
+  return Object.assign({level:'고', year:DATA_YEAR}, s, {classes, students});
+}
+
+function loadSchools(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw).map(normalizeSchool);
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(BASE_SCHOOLS)).map(normalizeSchool);
+}
+function saveSchools(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+let SCHOOLS = [];
+
+function loadSettings(){
+  const def = {chartType:'bar', sections:{region:true, grade:true}, chartTypes:{homeRegion:'line', homeGrade:'bar', homeRank:'bar'}, extraYears:[], defaultYear:null, yearChangeChartType:'radar'};
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return Object.assign(def, parsed, {chartTypes: Object.assign({}, def.chartTypes, parsed.chartTypes), extraYears: parsed.extraYears || []});
+    }
+  } catch(e) {}
+  return def;
+}
+function saveSettings(s){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
+let SETTINGS = loadSettings();
+
+/* ---------- tooltip ---------- */
+const tooltipEl = document.getElementById('tooltip');
+function showTooltip(evt, html){
+  tooltipEl.innerHTML = html;
+  tooltipEl.hidden = false;
+  const pad = 14;
+  tooltipEl.style.left = (evt.clientX + pad) + 'px';
+  tooltipEl.style.top = (evt.clientY + pad) + 'px';
+}
+function hideTooltip(){ tooltipEl.hidden = true; }
+
+/* ---------- chart engine (vanilla SVG, no external libs) ---------- */
+const NS = 'http://www.w3.org/2000/svg';
+function el(name, attrs){
+  const e = document.createElementNS(NS, name);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+function renderChart(container, opts){
+  container.innerHTML = '';
+  const type = opts.type || (opts.settingsKey && SETTINGS.chartTypes[opts.settingsKey]) || SETTINGS.chartType || 'bar';
+  if (type === 'pie' && opts.series.length === 1) renderPie(container, opts);
+  else if (type === 'radar') renderRadar(container, opts);
+  else if (type === 'line') renderLine(container, opts);
+  else renderBar(container, opts);
+  if (opts.filename) appendChartDownloadRow(container, opts.filename);
+}
+
+function appendChartDownloadRow(container, filenameBase){
+  const row = document.createElement('div');
+  row.className = 'chart-download-row';
+  const label = document.createElement('span');
+  label.className = 'dl-label';
+  label.textContent = '다운로드';
+  row.appendChild(label);
+  ['png','jpg','svg'].forEach(fmt=>{
+    const btn = document.createElement('button');
+    btn.className = 'btn small';
+    btn.textContent = fmt.toUpperCase();
+    btn.addEventListener('click', ()=>{
+      const svgEl = container.querySelector('svg');
+      if (!svgEl) { alert('다운로드할 그래프가 없습니다.'); return; }
+      exportChartAsImage(svgEl, fmt, filenameBase);
+    });
+    row.appendChild(btn);
+  });
+  container.appendChild(row);
+}
+
+function renderBar(container, {categories, series, categoryWidth}){
+  const n = categories.length || 1;
+  const W = Math.max(560, n * (categoryWidth || Math.max(60, series.length*46)));
+  const H = 300;
+  const longLabels = categories.some(c => String(c).length > 4);
+  const marginL = 54, marginR = 20, marginT = 30, marginB = longLabels ? 66 : 42;
+  const plotW = W - marginL - marginR, plotH = H - marginT - marginB;
+  const maxVal = Math.max(1, ...series.flatMap(s=>s.data)) * 1.2;
+  const svg = el('svg', {viewBox:`0 0 ${W} ${H}`, width:'100%', preserveAspectRatio:'xMidYMid meet'});
+  svg.classList.add('chart-svg');
+
+  const ticks = 5;
+  for (let i=0;i<=ticks;i++){
+    const v = maxVal*i/ticks;
+    const y = marginT + plotH - (v/maxVal)*plotH;
+    svg.appendChild(el('line',{x1:marginL,x2:W-marginR,y1:y,y2:y,class:'gridline'}));
+    const t = el('text',{x:marginL-8,y:y+4,'text-anchor':'end',class:'axis-label'});
+    t.textContent = Math.round(v).toLocaleString();
+    svg.appendChild(t);
+  }
+  svg.appendChild(el('line',{x1:marginL,x2:W-marginR,y1:marginT+plotH,y2:marginT+plotH,class:'axis-line'}));
+
+  const groupW = plotW / n;
+  const barGap = 6;
+  const barW = (groupW - barGap*(series.length+1)) / series.length;
+
+  categories.forEach((cat, ci) => {
+    const gx = marginL + ci*groupW;
+    series.forEach((s, si) => {
+      const v = s.data[ci] || 0;
+      const bh = (v/maxVal)*plotH;
+      const bx = gx + barGap + si*(barW+barGap);
+      const by = marginT + plotH - bh;
+      const rect = el('rect', {x:bx, y:by, width:Math.max(barW,2), height:Math.max(bh,0), fill:s.color, class:'bar', rx:3});
+      rect.addEventListener('mousemove', (e)=>showTooltip(e, `<strong>${cat}</strong><br>${s.name}: ${v.toLocaleString()}${s.unit||''}`));
+      rect.addEventListener('mouseleave', hideTooltip);
+      svg.appendChild(rect);
+      if (v > 0) {
+        const valLbl = el('text', {x:bx+Math.max(barW,2)/2, y:by-6, 'text-anchor':'middle', class:'bar-value'});
+        valLbl.textContent = v.toLocaleString();
+        svg.appendChild(valLbl);
+      }
+    });
+    const lx = gx + groupW/2, ly = marginT + plotH + 18;
+    const lbl = el('text', {x:lx, y:ly, 'text-anchor': longLabels?'start':'middle', class:'x-label'});
+    lbl.textContent = cat;
+    if (longLabels) lbl.setAttribute('transform', `rotate(35 ${lx} ${ly})`);
+    svg.appendChild(lbl);
+  });
+
+  container.appendChild(svg);
+  if (series.length > 1) container.appendChild(buildLegend(series));
+}
+
+function renderLine(container, {categories, series, showLabels, categoryWidth}){
+  const n = categories.length || 1;
+  const W = Math.max(560, n*(categoryWidth || 70));
+  const H = 300;
+  const marginL=54, marginR=20, marginT=20, marginB=42;
+  const plotW = W-marginL-marginR, plotH = H-marginT-marginB;
+  const maxVal = Math.max(1, ...series.flatMap(s=>s.data))*1.15;
+  const svg = el('svg', {viewBox:`0 0 ${W} ${H}`, width:'100%', preserveAspectRatio:'xMidYMid meet'});
+  svg.classList.add('chart-svg');
+  const ticks=5;
+  for(let i=0;i<=ticks;i++){
+    const v=maxVal*i/ticks;
+    const y=marginT+plotH-(v/maxVal)*plotH;
+    svg.appendChild(el('line',{x1:marginL,x2:W-marginR,y1:y,y2:y,class:'gridline'}));
+    const t=el('text',{x:marginL-8,y:y+4,'text-anchor':'end',class:'axis-label'});
+    t.textContent=Math.round(v).toLocaleString();
+    svg.appendChild(t);
+  }
+  svg.appendChild(el('line',{x1:marginL,x2:W-marginR,y1:marginT+plotH,y2:marginT+plotH,class:'axis-line'}));
+  const stepX = n>1 ? plotW/(n-1) : 0;
+  series.forEach(s=>{
+    let d='';
+    s.data.forEach((v,i)=>{
+      const x = marginL + (n>1 ? i*stepX : plotW/2);
+      const y = marginT+plotH-(v/maxVal)*plotH;
+      d += (i===0?'M':'L')+x+','+y+' ';
+    });
+    svg.appendChild(el('path',{d, fill:'none', stroke:s.color, 'stroke-width':2.5}));
+    s.data.forEach((v,i)=>{
+      const x = marginL + (n>1 ? i*stepX : plotW/2);
+      const y = marginT+plotH-(v/maxVal)*plotH;
+      const c = el('circle',{cx:x,cy:y,r:4.5, fill:s.color, class:'point'});
+      c.addEventListener('mousemove',(e)=>showTooltip(e,`<strong>${categories[i]}</strong><br>${s.name}: ${v.toLocaleString()}${s.unit||''}`));
+      c.addEventListener('mouseleave', hideTooltip);
+      svg.appendChild(c);
+      if (showLabels) {
+        const lbl = el('text', {x, y:y-9, 'text-anchor':'middle', class:'bar-value'});
+        lbl.textContent = v.toLocaleString();
+        svg.appendChild(lbl);
+      }
+    });
+  });
+  categories.forEach((cat,i)=>{
+    const x = marginL + (n>1 ? i*stepX : plotW/2);
+    const t = el('text',{x, y:marginT+plotH+18,'text-anchor':'middle',class:'x-label'});
+    t.textContent = cat;
+    svg.appendChild(t);
+  });
+  container.appendChild(svg);
+  if (series.length > 1) container.appendChild(buildLegend(series));
+}
+
+function renderPie(container, {categories, series}){
+  const s = series[0];
+  const total = s.data.reduce((a,b)=>a+b,0) || 1;
+  const W=380, H=300, cx=140, cy=150, r=115;
+  const svg = el('svg', {viewBox:`0 0 ${W} ${H}`, width:'100%', preserveAspectRatio:'xMidYMid meet'});
+  svg.classList.add('chart-svg');
+  let angle = -Math.PI/2;
+  categories.forEach((cat,i)=>{
+    const v = s.data[i] || 0;
+    const frac = v/total;
+    const a2 = angle + frac*Math.PI*2;
+    const x1=cx+r*Math.cos(angle), y1=cy+r*Math.sin(angle);
+    const x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
+    const large = (a2-angle) > Math.PI ? 1 : 0;
+    const d = frac >= 0.9999 ? `M${cx-r},${cy} A${r},${r} 0 1 1 ${cx+r},${cy} A${r},${r} 0 1 1 ${cx-r},${cy} Z` : `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z`;
+    const path = el('path', {d, fill: PALETTE[i%PALETTE.length], class:'pie-slice'});
+    path.addEventListener('mousemove',(e)=>showTooltip(e, `<strong>${cat}</strong><br>${s.name}: ${v.toLocaleString()}${s.unit||''} (${(frac*100).toFixed(1)}%)`));
+    path.addEventListener('mouseleave', hideTooltip);
+    svg.appendChild(path);
+    angle = a2;
+  });
+  container.appendChild(svg);
+  const legend = document.createElement('div'); legend.className='legend';
+  categories.forEach((cat,i)=>{
+    const item = document.createElement('span'); item.className='legend-item';
+    item.innerHTML = `<i style="background:${PALETTE[i%PALETTE.length]}"></i>${cat}`;
+    legend.appendChild(item);
+  });
+  container.appendChild(legend);
+}
+
+function renderRadar(container, {categories, series}){
+  const axes = categories;
+  const n = Math.max(axes.length, 1);
+  const W = 480, H = 420;
+  const cx = W/2, cy = 190;
+  const maxR = 130;
+  const maxVal = Math.max(1, ...series.flatMap(s=>s.data)) * 1.15;
+  const svg = el('svg', {viewBox:`0 0 ${W} ${H}`, width:'100%', preserveAspectRatio:'xMidYMid meet'});
+  svg.classList.add('chart-svg');
+  const angleFor = i => -Math.PI/2 + i*(2*Math.PI/n);
+
+  const rings = 4;
+  for (let r=1; r<=rings; r++){
+    const rad = maxR*r/rings;
+    let d='';
+    for (let i=0;i<n;i++){
+      const a = angleFor(i);
+      const x = cx+rad*Math.cos(a), y = cy+rad*Math.sin(a);
+      d += (i===0?'M':'L')+x+','+y+' ';
+    }
+    d += 'Z';
+    svg.appendChild(el('path',{d, fill:'none', class:'gridline'}));
+  }
+  for (let i=0;i<n;i++){
+    const a = angleFor(i);
+    const x = cx+maxR*Math.cos(a), y = cy+maxR*Math.sin(a);
+    svg.appendChild(el('line',{x1:cx,y1:cy,x2:x,y2:y,class:'gridline'}));
+    const lx = cx+(maxR+22)*Math.cos(a), ly = cy+(maxR+22)*Math.sin(a);
+    const t = el('text',{x:lx,y:ly+4,'text-anchor':'middle',class:'x-label'});
+    t.textContent = axes[i];
+    svg.appendChild(t);
+  }
+
+  const labelDescs = [];
+  series.forEach(s=>{
+    let d='';
+    const pts = [];
+    for (let i=0;i<n;i++){
+      const v = s.data[i] || 0;
+      const rad = Math.max(0, v/maxVal)*maxR;
+      const a = angleFor(i);
+      const x = cx+rad*Math.cos(a), y = cy+rad*Math.sin(a);
+      pts.push([x,y]);
+      d += (i===0?'M':'L')+x+','+y+' ';
+    }
+    d += 'Z';
+    svg.appendChild(el('path',{d, fill:s.color, 'fill-opacity':0.12, stroke:s.color, 'stroke-width':2}));
+    pts.forEach(([x,y],i)=>{
+      const v = s.data[i] || 0;
+      const c = el('circle',{cx:x,cy:y,r:4, fill:s.color, class:'point'});
+      c.addEventListener('mousemove',(e)=>showTooltip(e,`<strong>${axes[i]}</strong><br>${s.name}: ${v.toLocaleString()}${s.unit||''}`));
+      c.addEventListener('mouseleave', hideTooltip);
+      svg.appendChild(c);
+      const text = v.toLocaleString();
+      labelDescs.push({
+        anchorX: x, anchorY: y,
+        initX: x, initY: y-9,
+        x, y: y-9,
+        w: Math.max(24, text.length*6.6+6), h: 17,
+        text, color: s.color
+      });
+    });
+  });
+
+  resolveLabelCollisions(labelDescs);
+
+  labelDescs.forEach(ld=>{
+    const displaced = Math.hypot(ld.x-ld.initX, ld.y-ld.initY) > 2.5;
+    if (displaced) {
+      svg.appendChild(el('line',{x1:ld.anchorX,y1:ld.anchorY,x2:ld.x,y2:ld.y+4,stroke:ld.color,'stroke-width':1,'stroke-opacity':0.55}));
+    }
+    const lbl = el('text',{x:ld.x, y:ld.y,'text-anchor':'middle',class:'bar-value',style:`fill:${ld.color};`});
+    lbl.textContent = ld.text;
+    svg.appendChild(lbl);
+  });
+
+  container.appendChild(svg);
+  container.appendChild(buildLegend(series));
+}
+
+/* 다각형 그래프의 값 라벨끼리 겹치면 세로로 밀어내고, 원래 위치(점)에서 옮겨진 라벨은 얇은 연결선으로 이어준다. */
+function resolveLabelCollisions(labels){
+  for (let iter=0; iter<150; iter++){
+    let moved = false;
+    for (let i=0;i<labels.length;i++){
+      for (let j=i+1;j<labels.length;j++){
+        const a = labels[i], b = labels[j];
+        const overlapX = (a.w+b.w)/2 - Math.abs(a.x-b.x);
+        const overlapY = (a.h+b.h)/2 + 2 - Math.abs(a.y-b.y);
+        if (overlapX > 0 && overlapY > 0){
+          moved = true;
+          const push = overlapY/2 + 0.6;
+          if (a.y <= b.y) { a.y -= push; b.y += push; }
+          else { a.y += push; b.y -= push; }
+        }
+      }
+    }
+    if (!moved) break;
+  }
+}
+
+function buildLegend(series){
+  const legend = document.createElement('div'); legend.className='legend';
+  series.forEach(s=>{
+    const item = document.createElement('span'); item.className='legend-item';
+    item.innerHTML = `<i style="background:${s.color}"></i>${s.name}`;
+    legend.appendChild(item);
+  });
+  return legend;
+}
+
+/* ---------- chart image export (PNG / JPG / SVG, no external libraries) ---------- */
+const CHART_EXPORT_CSS = 'text{font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;} '
+  + '.gridline{stroke:#eef0f4;stroke-width:1;} '
+  + '.axis-line{stroke:#d1d5db;stroke-width:1;} '
+  + '.axis-label{font-size:10px;fill:#9ca3af;} '
+  + '.x-label{font-size:11px;fill:#4b5563;} '
+  + '.bar-value{font-size:11px;fill:#1f2937;font-weight:600;}';
+
+function exportChartAsImage(svgEl, format, filenameBase){
+  const clone = svgEl.cloneNode(true);
+  const styleEl = document.createElementNS(NS, 'style');
+  styleEl.textContent = CHART_EXPORT_CSS;
+  clone.insertBefore(styleEl, clone.firstChild);
+  const vb = (clone.getAttribute('viewBox') || '0 0 600 300').split(/\s+/).map(Number);
+  const w = vb[2] || 600, h = vb[3] || 300;
+  clone.setAttribute('width', w);
+  clone.setAttribute('height', h);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clone.style.background = '#ffffff';
+  const rectBg = document.createElementNS(NS, 'rect');
+  rectBg.setAttribute('x', 0); rectBg.setAttribute('y', 0);
+  rectBg.setAttribute('width', w); rectBg.setAttribute('height', h);
+  rectBg.setAttribute('fill', '#ffffff');
+  clone.insertBefore(rectBg, styleEl.nextSibling);
+
+  const svgText = new XMLSerializer().serializeToString(clone);
+
+  if (format === 'svg') {
+    triggerDownload(filenameBase + '.svg', svgText, 'image/svg+xml;charset=utf-8;');
+    return;
+  }
+
+  const scale = 2;
+  const svgBlob = new Blob([svgText], {type: 'image/svg+xml;charset=utf-8'});
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = w * scale;
+    canvas.height = h * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    const mime = format === 'jpg' ? 'image/jpeg' : 'image/png';
+    canvas.toBlob((blob) => {
+      if (!blob) { alert('이미지 생성에 실패했습니다.'); return; }
+      const dlUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = dlUrl; a.download = filenameBase + '.' + format;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(dlUrl);
+    }, mime, format === 'jpg' ? 0.92 : undefined);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); alert('이미지 변환에 실패했습니다.'); };
+  img.src = url;
+}
+
+
+/* ---------- aggregation helpers ---------- */
+function countByRegion(list){
+  const map = {};
+  REGION_ORDER.forEach(r=>map[r]=0);
+  list.forEach(s=>{ map[s.region] = (map[s.region]||0) + 1; });
+  return REGION_ORDER.map(r=>map[r]||0);
+}
+function studentsByRegion(list){
+  const map = {};
+  REGION_ORDER.forEach(r=>map[r]=0);
+  list.forEach(s=>{ map[s.region] = (map[s.region]||0) + (s.students.total||0); });
+  return REGION_ORDER.map(r=>map[r]||0);
+}
+function studentsByGrade(list){
+  return [
+    list.reduce((a,s)=>a+(s.students.g1||0),0),
+    list.reduce((a,s)=>a+(s.students.g2||0),0),
+    list.reduce((a,s)=>a+(s.students.g3||0),0)
+  ];
+}
+/* ---------- configurable rank (top-N) widget ---------- */
+const METRIC_LABELS = {students:'학생수', classes:'학급수', staff:'교사수'};
+const METRIC_UNITS = {students:'명', classes:'개', staff:'명'};
+
+function metricValue(s, metric){
+  if (metric === 'students') return s.students.total;
+  if (metric === 'classes') return s.classes.total;
+  if (metric === 'staff') return s.staff;
+  return 0;
+}
+
+/* ---------- filters / search ---------- */
+function populateYearOptions(){
+  const yearSel = document.getElementById('f-year');
+  const prevVal = yearSel.value;
+  const curYear = new Date().getFullYear();
+  const yearSet = new Set([curYear]);
+  SCHOOLS.forEach(s => { if (s.year) yearSet.add(s.year); });
+  (SETTINGS.extraYears || []).forEach(y => yearSet.add(y));
+  const minY = Math.min(...yearSet), maxY = Math.max(...yearSet);
+  const years = [];
+  for (let y = minY; y <= maxY; y++) years.push(y);
+  yearSel.innerHTML = years.map(y=>`<option value="${y}">${y}년</option>`).join('');
+  if (prevVal && years.includes(Number(prevVal))) yearSel.value = prevVal;
+  else if (SETTINGS.defaultYear && years.includes(Number(SETTINGS.defaultYear))) yearSel.value = String(SETTINGS.defaultYear);
+  else yearSel.value = String(curYear);
+}
+
+function populateFilters(){
+  populateYearOptions();
+
+  const regionSel = document.getElementById('f-region');
+  regionSel.innerHTML = '<option value="">전체</option>' + REGION_ORDER.map(r=>`<option value="${r}">${shortRegion(r)}</option>`).join('');
+
+  populateDatalist();
+  regionSel.addEventListener('change', ()=>{
+    populateDatalist(regionSel.value);
+    document.getElementById('f-name').value = '';
+  });
+}
+function populateDatalist(region){
+  const datalist = document.getElementById('school-names');
+  const list = region ? SCHOOLS.filter(s=>s.region===region) : SCHOOLS;
+  datalist.innerHTML = list.map(s=>`<option value="${s.name}"></option>`).join('');
+}
+
+function doSearch(){
+  const year = Number(document.getElementById('f-year').value);
+  const region = document.getElementById('f-region').value;
+  const level = document.getElementById('f-level').value;
+  const name = document.getElementById('f-name').value.trim();
+
+  const homeResults = document.getElementById('home-results');
+  const note = document.getElementById('home-note');
+  note.hidden = true; note.textContent = '';
+
+  homeResults.hidden = false;
+  homeResults.innerHTML = '';
+
+  if (name) {
+    const candidates = SCHOOLS.filter(s => s.name === name || s.name.includes(name));
+    if (!candidates.length) {
+      homeResults.hidden = true;
+      note.hidden = false; note.textContent = `"${name}"에 해당하는 학교를 찾을 수 없습니다.`;
+      return;
+    }
+    const school = candidates.find(s => s.name === name && s.year === year) || candidates.find(s => s.year === year);
+    if (!school) {
+      const years = [...new Set(candidates.map(s => s.year))].sort((a,b)=>a-b);
+      homeResults.hidden = true;
+      note.hidden = false; note.textContent = `"${name}" 학교를 찾았지만 ${year}년 자료가 없습니다. (자료 있는 연도: ${years.join(', ')}년)`;
+      return;
+    }
+    renderSchoolDetail(homeResults, school);
+    return;
+  }
+
+  if (level === '초' || level === '중') {
+    const levelPool = SCHOOLS.filter(s => s.level === level && s.year === year);
+    if (!levelPool.length) {
+      homeResults.hidden = true;
+      note.hidden = false; note.textContent = `${LEVEL_NAMES[level]} ${year}년 자료가 없습니다. 관리자 페이지에서 파일을 추가할 수 있습니다.`;
+      return;
+    }
+    let lvlList = levelPool;
+    if (region) lvlList = lvlList.filter(s=>s.region===region);
+    renderLevelResult(homeResults, lvlList, region, level, year);
+    return;
+  }
+
+  if (level === '고') {
+    if (!SCHOOLS.some(s => s.level === '고' && s.year === year)) {
+      homeResults.hidden = true;
+      note.hidden = false; note.textContent = `고등학교 ${year}년 자료가 없습니다. 관리자 페이지에서 파일을 추가할 수 있습니다.`;
+      return;
+    }
+    let list = SCHOOLS.filter(s=>s.level==='고' && s.year===year);
+    if (region) list = list.filter(s=>s.region===region);
+    renderRegionResult(homeResults, list, region, year);
+    return;
+  }
+
+  if (!SCHOOLS.some(s => s.year === year)) {
+    homeResults.hidden = true;
+    note.hidden = false; note.textContent = `${year}년 자료가 없습니다. 관리자 페이지에서 파일을 추가할 수 있습니다.`;
+    return;
+  }
+  renderAllLevelsResult(homeResults, region, year);
+}
+
+function renderAllLevelsResult(container, region, year){
+  const label = region ? shortRegion(region) : '도내 전체';
+  let list = SCHOOLS.filter(s => s.year === year);
+  if (region) list = list.filter(s => s.region === region);
+
+  if (!list.length) {
+    const card = document.createElement('div'); card.className='card wide';
+    card.innerHTML = `<p class="empty">${year}년 ${label} 자료가 없습니다. 관리자 페이지에서 파일을 추가할 수 있습니다.</p>`;
+    container.appendChild(card);
+    return;
+  }
+
+  if (!region) {
+    const summary = document.createElement('div'); summary.className='card wide';
+    summary.innerHTML = `<h2>요약</h2><p>학교 수: <strong>${list.length}개교</strong> · 총 학급수: <strong>${list.reduce((a,s)=>a+s.classes.total,0).toLocaleString()}개</strong> · 총 학생수: <strong>${list.reduce((a,s)=>a+s.students.total,0).toLocaleString()}명</strong> · 총 교사수: <strong>${list.reduce((a,s)=>a+s.staff,0).toLocaleString()}명</strong></p>`;
+    container.appendChild(summary);
+
+    const cardCount = document.createElement('div'); cardCount.className='card wide';
+    cardCount.innerHTML = `<h2>도내 시군별 학교 수</h2><p class="sub">${year}년 기준 · 초·중·고 통합</p><div class="chart-wrap" id="res-all-chart-region"></div>`;
+    container.appendChild(cardCount);
+    const levelColors = {'초':PALETTE[2], '중':PALETTE[3], '고':PALETTE[0]};
+    renderChart(document.getElementById('res-all-chart-region'), {
+      settingsKey: 'homeRegion',
+      categories: REGION_ORDER.map(shortRegion),
+      series: ['초','중','고'].map(lv=>({name: LEVEL_NAMES[lv], color: levelColors[lv], data: countByRegion(list.filter(s=>s.level===lv)), unit:'개교'})),
+      filename: `도내_시군별_학교수`,
+      showLabels: true,
+      categoryWidth: 40
+    });
+
+    const cardGrade = document.createElement('div'); cardGrade.className='card wide';
+    cardGrade.innerHTML = `<h2>도내 학년별 학생 수</h2><p class="sub">${year}년 기준 · 초1~고3</p><div class="chart-wrap" id="res-all-chart-grade"></div>`;
+    container.appendChild(cardGrade);
+    const gradeCategories = [], gradeData = [];
+    ['초','중','고'].forEach(lv=>{
+      const pool = list.filter(s=>s.level===lv);
+      for (let g=1; g<=GRADE_COUNT[lv]; g++){
+        gradeCategories.push(`${LEVEL_NAMES[lv][0]}${g}`);
+        gradeData.push(pool.reduce((a,s)=>a+(s.students['g'+g]||0),0));
+      }
+    });
+    renderChart(document.getElementById('res-all-chart-grade'), {
+      settingsKey: 'homeGrade',
+      categories: gradeCategories,
+      series: [{name:'학생수', color:PALETTE[1], data: gradeData, unit:'명'}],
+      filename: `도내_학년별_학생수`
+    });
+
+    buildHomeRankWidgetCard(container, list, year, 'res-all-rank');
+    toggleSectionVisibility();
+  } else {
+    const levelOrder = ['초','중','고'];
+    const levelLabels = levelOrder.map(lv=>LEVEL_NAMES[lv]);
+
+    const summary = document.createElement('div'); summary.className='card wide';
+    summary.innerHTML = `<h2>요약</h2><p>학교 수: <strong>${list.length}개교</strong> · 총 학급수: <strong>${list.reduce((a,s)=>a+s.classes.total,0).toLocaleString()}개</strong> · 총 학생수: <strong>${list.reduce((a,s)=>a+s.students.total,0).toLocaleString()}명</strong> · 총 교사수: <strong>${list.reduce((a,s)=>a+s.staff,0).toLocaleString()}명</strong></p>`;
+    container.appendChild(summary);
+
+    const cardCount = document.createElement('div'); cardCount.className='card wide';
+    cardCount.innerHTML = `<h2>${label} 초·중·고 학교 수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-all-region-count"></div>`;
+    container.appendChild(cardCount);
+    renderChart(document.getElementById('res-all-region-count'), {
+      categories: levelLabels,
+      series: [{name:'학교수', color:PALETTE[0], data: levelOrder.map(lv=>list.filter(s=>s.level===lv).length), unit:'개교'}],
+      filename: `${label}_초중고_학교수`
+    });
+
+    const cardClass = document.createElement('div'); cardClass.className='card wide';
+    cardClass.innerHTML = `<h2>${label} 초·중·고 학급수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-all-region-class"></div>`;
+    container.appendChild(cardClass);
+    renderChart(document.getElementById('res-all-region-class'), {
+      categories: levelLabels,
+      series: [{name:'학급수', color:PALETTE[1], data: levelOrder.map(lv=>list.filter(s=>s.level===lv).reduce((a,s)=>a+s.classes.total,0)), unit:'개'}],
+      filename: `${label}_초중고_학급수`
+    });
+
+    const cardStudent = document.createElement('div'); cardStudent.className='card wide';
+    cardStudent.innerHTML = `<h2>${label} 초·중·고 학생수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-all-region-student"></div>`;
+    container.appendChild(cardStudent);
+    renderChart(document.getElementById('res-all-region-student'), {
+      categories: levelLabels,
+      series: [{name:'학생수', color:PALETTE[3], data: levelOrder.map(lv=>list.filter(s=>s.level===lv).reduce((a,s)=>a+s.students.total,0)), unit:'명'}],
+      filename: `${label}_초중고_학생수`
+    });
+
+    const cardGrade = document.createElement('div'); cardGrade.className='card wide';
+    cardGrade.innerHTML = `<h2>${label} 초1~고3 학생 수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-all-region-grade"></div>`;
+    container.appendChild(cardGrade);
+    const gradeCategories = [], gradeData = [];
+    levelOrder.forEach(lv=>{
+      const pool = list.filter(s=>s.level===lv);
+      for (let g=1; g<=GRADE_COUNT[lv]; g++){
+        gradeCategories.push(`${LEVEL_NAMES[lv][0]}${g}`);
+        gradeData.push(pool.reduce((a,s)=>a+(s.students['g'+g]||0),0));
+      }
+    });
+    renderChart(document.getElementById('res-all-region-grade'), {
+      settingsKey: 'homeGrade',
+      categories: gradeCategories,
+      series: [{name:'학생수', color:PALETTE[1], data: gradeData, unit:'명'}],
+      filename: `${label}_초1고3_학생수`
+    });
+
+    const card = document.createElement('div'); card.className='card wide';
+    const sorted = list.slice().sort((a,b)=> levelOrder.indexOf(a.level)-levelOrder.indexOf(b.level) || a.name.localeCompare(b.name,'ko'));
+    const rows = sorted.map(s=>`<tr><td>${LEVEL_NAMES[s.level]}</td><td>${s.name}</td><td>${s.est}</td><td>${s.classes.total.toLocaleString()}</td><td>${s.students.total.toLocaleString()}</td><td>${s.staff.toLocaleString()}</td></tr>`).join('');
+    card.innerHTML = `<h2>${label} ${year}년 학교 목록</h2><div class="table-wrap"><table><thead><tr><th>학교급</th><th>학교명</th><th>설립</th><th>학급수</th><th>학생수</th><th>교사수</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    container.appendChild(card);
+  }
+}
+
+function buildRankWidgetCard(container, list, label, year, idPrefix){
+  const card = document.createElement('div'); card.className='card wide';
+  card.innerHTML = `
+    <h2>${label} 학교 순위</h2>
+    <p class="sub">${year}년 기준 · 정렬·기준·표시 개수를 선택하세요</p>
+    <div class="rank-controls">
+      <div class="filter-item">
+        <label for="${idPrefix}-order">정렬</label>
+        <select id="${idPrefix}-order">
+          <option value="top">상위</option>
+          <option value="bottom">하위</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label for="${idPrefix}-metric">기준</label>
+        <select id="${idPrefix}-metric">
+          <option value="students">학생수</option>
+          <option value="classes">학급수</option>
+          <option value="staff">교사수</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label for="${idPrefix}-count-mode">표시 개수</label>
+        <select id="${idPrefix}-count-mode">
+          ${Array.from({length:10},(_,i)=>i+1).map(n=>`<option value="${n}" ${n===5?'selected':''}>${n}개교</option>`).join('')}
+          <option value="all">전체</option>
+          <option value="custom">직접 입력</option>
+        </select>
+      </div>
+      <div class="filter-item" id="${idPrefix}-custom-wrap" hidden>
+        <label for="${idPrefix}-custom">개수 입력</label>
+        <input type="number" id="${idPrefix}-custom" min="1" value="5">
+      </div>
+    </div>
+    <div class="chart-wrap" id="${idPrefix}-chart"></div>
+  `;
+  container.appendChild(card);
+  function renderRank(){
+    const order = document.getElementById(`${idPrefix}-order`).value;
+    const metric = document.getElementById(`${idPrefix}-metric`).value;
+    const modeVal = document.getElementById(`${idPrefix}-count-mode`).value;
+    let count;
+    if (modeVal === 'all') count = list.length;
+    else if (modeVal === 'custom') count = Math.max(1, Number(document.getElementById(`${idPrefix}-custom`).value) || 1);
+    else count = Number(modeVal);
+    const sorted = list.slice().sort((a,b)=> order==='bottom' ? metricValue(a,metric)-metricValue(b,metric) : metricValue(b,metric)-metricValue(a,metric));
+    const top = sorted.slice(0, count);
+    renderChart(document.getElementById(`${idPrefix}-chart`), {
+      type: 'bar',
+      categories: top.map(s=>s.name),
+      series: [{name: METRIC_LABELS[metric], color:PALETTE[4], data: top.map(s=>metricValue(s,metric)), unit: METRIC_UNITS[metric]}],
+      filename: `${label}_학교순위_${order==='bottom'?'하위':'상위'}`
+    });
+  }
+  document.getElementById(`${idPrefix}-order`).addEventListener('change', renderRank);
+  document.getElementById(`${idPrefix}-metric`).addEventListener('change', renderRank);
+  document.getElementById(`${idPrefix}-count-mode`).addEventListener('change', (e)=>{
+    document.getElementById(`${idPrefix}-custom-wrap`).hidden = e.target.value !== 'custom';
+    renderRank();
+  });
+  document.getElementById(`${idPrefix}-custom`).addEventListener('input', renderRank);
+  renderRank();
+}
+
+function buildHomeRankWidgetCard(container, yearList, year, idPrefix){
+  const card = document.createElement('div'); card.className='card wide';
+  card.innerHTML = `
+    <h2>항목별 학교 순위</h2>
+    <p class="sub">${year}년 기준 · 학교급 · 정렬 · 기준 · 표시 개수를 선택하세요</p>
+    <div class="rank-controls">
+      <div class="filter-item">
+        <label for="${idPrefix}-level">학교급</label>
+        <select id="${idPrefix}-level">
+          <option value="고">고등학교</option>
+          <option value="중">중학교</option>
+          <option value="초">초등학교</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label for="${idPrefix}-order">정렬</label>
+        <select id="${idPrefix}-order">
+          <option value="top">상위</option>
+          <option value="bottom">하위</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label for="${idPrefix}-metric">기준</label>
+        <select id="${idPrefix}-metric">
+          <option value="students">학생수</option>
+          <option value="classes">학급수</option>
+          <option value="staff">교사수</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label for="${idPrefix}-count-mode">표시 개수</label>
+        <select id="${idPrefix}-count-mode">
+          ${Array.from({length:10},(_,i)=>i+1).map(n=>`<option value="${n}" ${n===5?'selected':''}>${n}개교</option>`).join('')}
+          <option value="all">전체</option>
+          <option value="custom">직접 입력</option>
+        </select>
+      </div>
+      <div class="filter-item" id="${idPrefix}-custom-wrap" hidden>
+        <label for="${idPrefix}-custom">개수 입력</label>
+        <input type="number" id="${idPrefix}-custom" min="1" value="5">
+      </div>
+    </div>
+    <div class="chart-wrap" id="${idPrefix}-chart"></div>
+  `;
+  container.appendChild(card);
+  function renderRank(){
+    const level = document.getElementById(`${idPrefix}-level`).value;
+    const order = document.getElementById(`${idPrefix}-order`).value;
+    const metric = document.getElementById(`${idPrefix}-metric`).value;
+    const modeVal = document.getElementById(`${idPrefix}-count-mode`).value;
+    const chartEl = document.getElementById(`${idPrefix}-chart`);
+    const pool = yearList.filter(s=>s.level===level);
+    if (!pool.length) {
+      chartEl.innerHTML = `<p class="empty">${LEVEL_NAMES[level]} ${year}년 자료가 없습니다.</p>`;
+      return;
+    }
+    let count;
+    if (modeVal === 'all') count = pool.length;
+    else if (modeVal === 'custom') count = Math.max(1, Number(document.getElementById(`${idPrefix}-custom`).value) || 1);
+    else count = Number(modeVal);
+    const sorted = pool.slice().sort((a,b)=> order==='bottom' ? metricValue(a,metric)-metricValue(b,metric) : metricValue(b,metric)-metricValue(a,metric));
+    const top = sorted.slice(0, count);
+    renderChart(chartEl, {
+      settingsKey: 'homeRank',
+      categories: top.map(s=>s.name),
+      series: [{name: METRIC_LABELS[metric], color:PALETTE[4], data: top.map(s=>metricValue(s,metric)), unit: METRIC_UNITS[metric]}],
+      filename: `${LEVEL_NAMES[level]}_학교순위_${order==='bottom'?'하위':'상위'}`
+    });
+  }
+  document.getElementById(`${idPrefix}-level`).addEventListener('change', renderRank);
+  document.getElementById(`${idPrefix}-order`).addEventListener('change', renderRank);
+  document.getElementById(`${idPrefix}-metric`).addEventListener('change', renderRank);
+  document.getElementById(`${idPrefix}-count-mode`).addEventListener('change', (e)=>{
+    document.getElementById(`${idPrefix}-custom-wrap`).hidden = e.target.value !== 'custom';
+    renderRank();
+  });
+  document.getElementById(`${idPrefix}-custom`).addEventListener('input', renderRank);
+  renderRank();
+}
+
+function renderLevelResult(container, list, region, level, year){
+  const levelName = LEVEL_NAMES[level];
+  const label = region ? shortRegion(region) : '도내 전체';
+
+  const summary = document.createElement('div'); summary.className='card wide';
+  summary.innerHTML = `<h2>요약</h2><p>학교 수: <strong>${list.length}개교</strong> · 총 학급수: <strong>${list.reduce((a,s)=>a+s.classes.total,0).toLocaleString()}개</strong> · 총 학생수: <strong>${list.reduce((a,s)=>a+s.students.total,0).toLocaleString()}명</strong> · 총 교사수: <strong>${list.reduce((a,s)=>a+s.staff,0).toLocaleString()}명</strong></p>`;
+  container.appendChild(summary);
+
+  if (!region) {
+    const card = document.createElement('div'); card.className='card wide';
+    card.innerHTML = `<h2>${label} 시군별 ${levelName} 수</h2><p class="sub">${year}년 기준 업로드 자료</p><div class="chart-wrap" id="lvl-chart-region"></div>`;
+    container.appendChild(card);
+    renderChart(document.getElementById('lvl-chart-region'), {
+      categories: REGION_ORDER.map(shortRegion),
+      series: [{name: levelName, color:PALETTE[2], data: countByRegion(list), unit:'개교'}],
+      filename: `${label}_시군별_${levelName}수`
+    });
+
+    const cardStudents = document.createElement('div'); cardStudents.className='card wide';
+    cardStudents.innerHTML = `<h2>${label} 시군별 ${levelName} 학생수</h2><p class="sub">${year}년 기준 업로드 자료</p><div class="chart-wrap" id="lvl-chart-region-students"></div>`;
+    container.appendChild(cardStudents);
+    renderChart(document.getElementById('lvl-chart-region-students'), {
+      categories: REGION_ORDER.map(shortRegion),
+      series: [{name: levelName+' 학생수', color:PALETTE[3], data: studentsByRegion(list), unit:'명'}],
+      filename: `${label}_시군별_${levelName}학생수`
+    });
+  } else {
+    const cardCount = document.createElement('div'); cardCount.className='card';
+    cardCount.innerHTML = `<h2>${label} ${levelName} 전체 학교 수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="lvl-chart-count"></div>`;
+    const cardGrade = document.createElement('div'); cardGrade.className='card';
+    cardGrade.innerHTML = `<h2>${label} 학년별 학생 수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="lvl-chart-students"></div>`;
+    container.appendChild(cardCount);
+    container.appendChild(cardGrade);
+
+    renderChart(document.getElementById('lvl-chart-count'), {
+      categories: [levelName],
+      series: [{name:'학교수', color:PALETTE[2], data:[list.length], unit:'개교'}],
+      filename: `${label}_${levelName}_전체학교수`
+    });
+    const gradeCount = GRADE_COUNT[level];
+    const gradeLabels = Array.from({length:gradeCount},(_,i)=>`${i+1}학년`);
+    renderChart(document.getElementById('lvl-chart-students'), {
+      categories: gradeLabels,
+      series: [{name:'학생수', color:PALETTE[1], data: gradeLabels.map((_,i)=> list.reduce((a,s)=>a+(s.students['g'+(i+1)]||0),0)), unit:'명'}],
+      filename: `${label}_학년별_학생수`
+    });
+
+    buildRankWidgetCard(container, list, label, year, 'lvl-rank');
+  }
+}
+
+function renderRegionResult(container, list, region, year){
+  const label = region ? shortRegion(region) : '도내 전체';
+
+  const summary = document.createElement('div'); summary.className='card wide';
+  summary.innerHTML = `<h2>요약</h2><p>학교 수: <strong>${list.length}개교</strong> · 총 학생수: <strong>${list.reduce((a,s)=>a+s.students.total,0).toLocaleString()}명</strong> · 총 학급수: <strong>${list.reduce((a,s)=>a+s.classes.total,0).toLocaleString()}개</strong></p>`;
+  container.appendChild(summary);
+
+  if (!region) {
+    const cardRegionCount = document.createElement('div'); cardRegionCount.className='card wide';
+    cardRegionCount.innerHTML = `<h2>${label} 시군별 고등학교 수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-chart-region-count"></div>`;
+    container.appendChild(cardRegionCount);
+    renderChart(document.getElementById('res-chart-region-count'), {
+      categories: REGION_ORDER.map(shortRegion),
+      series: [{name:'고등학교', color:PALETTE[2], data: countByRegion(list), unit:'개교'}],
+      filename: `${label}_시군별_고등학교수`
+    });
+
+    const cardRegionStudents = document.createElement('div'); cardRegionStudents.className='card wide';
+    cardRegionStudents.innerHTML = `<h2>${label} 시군별 고등학교 학생수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-chart-region-students"></div>`;
+    container.appendChild(cardRegionStudents);
+    renderChart(document.getElementById('res-chart-region-students'), {
+      categories: REGION_ORDER.map(shortRegion),
+      series: [{name:'학생수', color:PALETTE[3], data: studentsByRegion(list), unit:'명'}],
+      filename: `${label}_시군별_고등학교학생수`
+    });
+  }
+
+  const card1 = document.createElement('div'); card1.className='card';
+  card1.innerHTML = `<h2>${label} 고등학교 유형별 학교 수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-chart-count"></div>`;
+  const card2 = document.createElement('div'); card2.className='card';
+  card2.innerHTML = `<h2>${label} 학년별 학생 수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-chart-students"></div>`;
+  container.appendChild(card1);
+  container.appendChild(card2);
+
+  const typeCounts = [...new Set(list.map(s=>s.type).filter(Boolean))]
+    .map(t => ({type: t, count: list.filter(s=>s.type===t).length}))
+    .sort((a,b) => b.count - a.count);
+  renderChart(document.getElementById('res-chart-count'), {
+    categories: typeCounts.length ? typeCounts.map(x=>x.type) : ['유형 없음'],
+    series: [{name:'학교수', color:PALETTE[0], data: typeCounts.length ? typeCounts.map(x=>x.count) : [0], unit:'개교'}],
+    filename: `${label}_고등학교_유형별학교수`
+  });
+  renderChart(document.getElementById('res-chart-students'), {
+    categories: ['1학년','2학년','3학년'],
+    series: [{name:'학생수', color:PALETTE[1], data:studentsByGrade(list), unit:'명'}],
+    filename: `${label}_학년별_학생수`
+  });
+
+  buildRankWidgetCard(container, list, label, year, 'res-rank');
+}
+
+function renderSchoolDetail(container, s){
+  const gradeCount = GRADE_COUNT[s.level] || 3;
+  const gradeLabels = Array.from({length: gradeCount}, (_, i) => `${i + 1}학년`);
+  const classesData = gradeLabels.map((_, i) => s.classes['g' + (i + 1)] || 0);
+  const studentsData = gradeLabels.map((_, i) => s.students['g' + (i + 1)] || 0);
+  const typeInfo = s.level === '고' ? ` · ${s.type || '유형 미기재'} · ${s.coed}` : '';
+
+  const card = document.createElement('div'); card.className='card wide';
+  card.innerHTML = `
+    <h2>${s.name}</h2>
+    <p class="sub">${shortRegion(s.region)} · ${s.est} · ${LEVEL_NAMES[s.level]}${typeInfo} · ${s.year}년 · 교직원 ${s.staff.toLocaleString()}명</p>
+    <div class="detail-grid">
+      <div><p class="sub">학년별 학급수</p><div class="chart-wrap" id="detail-classes"></div></div>
+      <div><p class="sub">학년별 학생수</p><div class="chart-wrap" id="detail-students"></div></div>
+    </div>
+  `;
+  container.appendChild(card);
+  renderChart(document.getElementById('detail-classes'), {
+    categories: gradeLabels,
+    series:[{name:'학급수', color:PALETTE[2], data: classesData, unit:'개'}],
+    filename: `${s.name}_학년별_학급수`
+  });
+  renderChart(document.getElementById('detail-students'), {
+    categories: gradeLabels,
+    series:[{name:'학생수', color:PALETTE[3], data: studentsData, unit:'명'}],
+    filename: `${s.name}_학년별_학생수`
+  });
+}
+
+/* ---------- level view (초등학교 / 중학교 / 고등학교 탭 공용) ---------- */
+let CURRENT_LEVEL = '고';
+let TYPE_TABLE_LIST = [];
+
+function initLevelView(){
+  document.getElementById('type-checks').addEventListener('change', onTypeCheckChange);
+  document.getElementById('btn-download-csv').addEventListener('click', downloadTypeCSV);
+  document.getElementById('btn-download-xls').addEventListener('click', downloadTypeExcel);
+  document.getElementById('level-year').addEventListener('change', ()=>{
+    const year = document.getElementById('level-year').value;
+    rebuildTypeCheckboxes(CURRENT_LEVEL, year);
+    renderLevelOverview(CURRENT_LEVEL, year);
+    updateLevelTable();
+  });
+}
+
+function renderLevelOverview(level, year){
+  const pool = SCHOOLS.filter(s => s.level === level && s.year === Number(year));
+  const regionContainer = document.getElementById('level-chart-region');
+  const studentsContainer = document.getElementById('level-chart-region-students');
+  const summaryEl = document.getElementById('level-overall-summary');
+
+  if (!pool.length) {
+    regionContainer.innerHTML = '<p class="empty">데이터가 없습니다. 관리자 페이지에서 파일을 추가해 주세요.</p>';
+    studentsContainer.innerHTML = '<p class="empty">데이터가 없습니다.</p>';
+    summaryEl.textContent = '';
+    return;
+  }
+
+  renderChart(regionContainer, {
+    categories: REGION_ORDER.map(shortRegion),
+    series: [{name: LEVEL_NAMES[level], color: PALETTE[2], data: countByRegion(pool), unit:'개교'}],
+    filename: `${LEVEL_NAMES[level]}_시군별_학교수`
+  });
+  renderChart(studentsContainer, {
+    categories: REGION_ORDER.map(shortRegion),
+    series: [{name: LEVEL_NAMES[level]+' 학생수', color: PALETTE[3], data: studentsByRegion(pool), unit:'명'}],
+    filename: `${LEVEL_NAMES[level]}_시군별_학생수`
+  });
+
+  const sumClasses = pool.reduce((a,s)=>a+s.classes.total,0);
+  const sumStudents = pool.reduce((a,s)=>a+s.students.total,0);
+  const sumStaff = pool.reduce((a,s)=>a+s.staff,0);
+  summaryEl.innerHTML = `학교 수: <strong>${pool.length}개교</strong> · 학급수 합계: <strong>${sumClasses.toLocaleString()}개</strong> · 학생수 합계: <strong>${sumStudents.toLocaleString()}명</strong> · 교사수 합계: <strong>${sumStaff.toLocaleString()}명</strong>`;
+}
+
+function populateLevelYearOptions(level){
+  const sel = document.getElementById('level-year');
+  const prevVal = sel.value;
+  const dataYears = [...new Set(SCHOOLS.filter(s=>s.level===level).map(s=>s.year))];
+  const yearSet = new Set(dataYears);
+  (SETTINGS.extraYears || []).forEach(y => yearSet.add(y));
+  const years = [...yearSet].sort((a,b)=>a-b);
+  sel.innerHTML = years.map(y=>`<option value="${y}">${y}년</option>`).join('');
+  if (!years.length) return;
+  if (prevVal && years.includes(Number(prevVal))) { sel.value = prevVal; return; }
+  if (SETTINGS.defaultYear && years.includes(Number(SETTINGS.defaultYear))) { sel.value = String(SETTINGS.defaultYear); return; }
+  const latestDataYear = dataYears.length ? Math.max(...dataYears) : years[years.length-1];
+  sel.value = String(latestDataYear);
+}
+
+function availableTypes(level, year){
+  const pool = SCHOOLS.filter(s => s.level === level && s.year === Number(year));
+  return [...new Set(pool.map(s => s.type).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
+}
+
+function rebuildTypeCheckboxes(level, year){
+  const checkRow = document.getElementById('type-checks');
+  if (level !== '고') { checkRow.hidden = true; checkRow.innerHTML = ''; return; }
+  checkRow.hidden = false;
+  const types = availableTypes(level, year);
+  if (!types.length) {
+    checkRow.innerHTML = '<p class="empty" style="margin:0;">해당 연도에 등록된 학교유형이 없습니다.</p>';
+    return;
+  }
+  checkRow.innerHTML = ['전체', ...types].map(t=>
+    `<label class="check-item"><input type="checkbox" value="${t}" checked> ${t}</label>`
+  ).join('');
+}
+
+function renderLevelView(level){
+  CURRENT_LEVEL = level;
+  const isHigh = level === '고';
+  document.getElementById('level-title').textContent = `${LEVEL_NAMES[level]} 현황`;
+  document.getElementById('level-sub').textContent = isHigh
+    ? '연도별로 실제 존재하는 유형만 체크박스로 표시됩니다.'
+    : '업로드된 자료 기준 (학교유형 구분 없음)';
+
+  populateLevelYearOptions(level);
+  const year = document.getElementById('level-year').value;
+  rebuildTypeCheckboxes(level, year);
+  renderLevelOverview(level, year);
+
+  const gradeCount = GRADE_COUNT[level];
+  const gradeLabel = Array.from({length: gradeCount}, (_,i)=>i+1).join('/');
+  const headCells = ['지역','설립', ...(isHigh?['학교유형']:[]), '학교명','연도', `학년별 학급수(${gradeLabel})`, `학년별 학생수(${gradeLabel})`, '학급수 계','학생수 계'];
+  document.getElementById('type-table-head').innerHTML = '<tr>' + headCells.map(c=>`<th>${c}</th>`).join('') + '</tr>';
+
+  updateLevelTable();
+}
+
+function onTypeCheckChange(e){
+  const boxes = [...document.querySelectorAll('#type-checks input')];
+  const allBox = boxes.find(b=>b.value==='전체');
+  if (e.target === allBox) {
+    boxes.forEach(b=>{ if (b!==allBox) b.checked = allBox.checked; });
+  } else {
+    const others = boxes.filter(b=>b!==allBox);
+    allBox.checked = others.every(b=>b.checked);
+  }
+  updateLevelTable();
+}
+
+function updateLevelTable(){
+  const level = CURRENT_LEVEL;
+  const isHigh = level === '고';
+  const gradeCount = GRADE_COUNT[level];
+  const tbody = document.querySelector('#type-table tbody');
+  const summaryEl = document.getElementById('type-summary');
+  const year = document.getElementById('level-year').value;
+
+  let list = SCHOOLS.filter(s => s.level === level && s.year === Number(year));
+  if (isHigh) {
+    const boxes = [...document.querySelectorAll('#type-checks input')];
+    const checked = boxes.filter(b=>b.checked && b.value!=='전체').map(b=>b.value);
+    list = list.filter(s => checked.includes(s.type));
+  }
+  list = list.sort((a,b)=> REGION_ORDER.indexOf(a.region)-REGION_ORDER.indexOf(b.region) || (a.year-b.year) || a.name.localeCompare(b.name,'ko'));
+  TYPE_TABLE_LIST = list;
+
+  const colCount = isHigh ? 9 : 8;
+  if (!list.length){
+    tbody.innerHTML = `<tr><td colspan="${colCount}" class="empty">데이터가 없습니다.</td></tr>`;
+    if (summaryEl) summaryEl.textContent = isHigh ? '선택된 유형이 없습니다.' : '데이터가 없습니다. 관리자 페이지에서 파일을 추가해 주세요.';
+    return;
+  }
+
+  tbody.innerHTML = list.map(s=>{
+    const classesStr = Array.from({length:gradeCount},(_,i)=>s.classes['g'+(i+1)]||0).join('/');
+    const studentsStr = Array.from({length:gradeCount},(_,i)=>s.students['g'+(i+1)]||0).join('/');
+    return `<tr>
+      <td>${shortRegion(s.region)}</td>
+      <td>${s.est}</td>
+      ${isHigh?`<td>${s.type||'-'}</td>`:''}
+      <td>${s.name}</td>
+      <td>${s.year}</td>
+      <td>${classesStr}</td>
+      <td>${studentsStr}</td>
+      <td>${s.classes.total.toLocaleString()}</td>
+      <td>${s.students.total.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  const sumClasses = list.reduce((a,s)=>a+s.classes.total,0);
+  const sumStudents = list.reduce((a,s)=>a+s.students.total,0);
+  const gradeSums = Array.from({length:gradeCount},(_,i)=> list.reduce((a,s)=>a+(s.students['g'+(i+1)]||0),0));
+  const gradeBreakdown = gradeSums.map((v,i)=>`${i+1}학년 ${v.toLocaleString()}`).join(' · ');
+  if (summaryEl) {
+    summaryEl.innerHTML = `학교 수: <strong>${list.length}개교</strong> · 학급수 합계: <strong>${sumClasses.toLocaleString()}개</strong> · 학생수 합계: <strong>${sumStudents.toLocaleString()}명</strong> (${gradeBreakdown})`;
+  }
+}
+
+/* ---------- export (CSV / Excel) ---------- */
+function buildTypeExportRows(){
+  const level = CURRENT_LEVEL;
+  const isHigh = level === '고';
+  const gradeCount = GRADE_COUNT[level];
+  const headers = ['지역','설립', ...(isHigh?['학교유형']:[]), '학교명','연도',
+    ...Array.from({length:gradeCount},(_,i)=>`${i+1}학년 학급수`), '학급수 계',
+    ...Array.from({length:gradeCount},(_,i)=>`${i+1}학년 학생수`), '학생수 계'];
+  const rows = TYPE_TABLE_LIST.map(s=>[
+    shortRegion(s.region), s.est, ...(isHigh?[s.type||'-']:[]), s.name, s.year,
+    ...Array.from({length:gradeCount},(_,i)=>s.classes['g'+(i+1)]||0), s.classes.total,
+    ...Array.from({length:gradeCount},(_,i)=>s.students['g'+(i+1)]||0), s.students.total
+  ]);
+  return {headers, rows};
+}
+function triggerDownload(filename, content, mime){
+  const blob = new Blob([content], {type: mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function csvEscape(val){
+  const str = String(val);
+  if (/[",\n]/.test(str)) return '"' + str.replace(/"/g,'""') + '"';
+  return str;
+}
+function downloadTypeCSV(){
+  if (!TYPE_TABLE_LIST.length){ alert('다운로드할 데이터가 없습니다.'); return; }
+  const {headers, rows} = buildTypeExportRows();
+  const lines = [headers, ...rows].map(r=>r.map(csvEscape).join(','));
+  const csv = '\uFEFF' + lines.join('\r\n');
+  triggerDownload(`강원도_${LEVEL_NAMES[CURRENT_LEVEL]}_현황.csv`, csv, 'text/csv;charset=utf-8;');
+}
+function xmlEscape(val){
+  return String(val).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function downloadTypeExcel(){
+  if (!TYPE_TABLE_LIST.length){ alert('다운로드할 데이터가 없습니다.'); return; }
+  const {headers, rows} = buildTypeExportRows();
+  const isHigh = CURRENT_LEVEL === '고';
+  const textColCount = isHigh ? 4 : 3;
+  const headerRow = `<Row>${headers.map(h=>`<Cell><Data ss:Type="String">${xmlEscape(h)}</Data></Cell>`).join('')}</Row>`;
+  const bodyRows = rows.map(r=>`<Row>${r.map((v,i)=>{
+    const type = i >= textColCount ? 'Number' : 'String';
+    return `<Cell><Data ss:Type="${type}">${xmlEscape(v)}</Data></Cell>`;
+  }).join('')}</Row>`).join('');
+  const xml = '<?xml version="1.0"?>\n<?mso-application progid="Excel.Sheet"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n<Worksheet ss:Name="${LEVEL_NAMES[CURRENT_LEVEL]}">\n<Table>\n' + headerRow + bodyRows + '\n</Table>\n</Worksheet>\n</Workbook>';
+  triggerDownload(`강원도_${LEVEL_NAMES[CURRENT_LEVEL]}_현황.xls`, xml, 'application/vnd.ms-excel;charset=utf-8;');
+}
+
+/* ---------- minimal XLSX reader (no external libraries; uses native ZIP parsing + DecompressionStream) ---------- */
+function readU32LE(view, off){ return view.getUint32(off, true); }
+function readU16LE(view, off){ return view.getUint16(off, true); }
+
+async function inflateRawBytes(bytes){
+  if (typeof DecompressionStream === 'undefined') {
+    throw new Error('이 브라우저는 파일 압축 해제 기능을 지원하지 않습니다. 최신 버전의 Chrome, Edge, Safari를 사용해 주세요.');
+  }
+  const ds = new DecompressionStream('deflate-raw');
+  const stream = new Blob([bytes]).stream().pipeThrough(ds);
+  const buf = await new Response(stream).arrayBuffer();
+  return new Uint8Array(buf);
+}
+
+async function unzipEntries(arrayBuffer, wantedRegex){
+  const bytes = new Uint8Array(arrayBuffer);
+  const view = new DataView(arrayBuffer);
+  const EOCD_SIG = 0x06054b50;
+  let eocdOff = -1;
+  const searchStart = Math.max(0, bytes.length - 65557);
+  for (let i = bytes.length - 22; i >= searchStart; i--) {
+    if (readU32LE(view, i) === EOCD_SIG) { eocdOff = i; break; }
+  }
+  if (eocdOff === -1) throw new Error('올바른 엑셀(.xlsx) 파일이 아닙니다.');
+  const totalEntries = readU16LE(view, eocdOff + 10);
+  const cdOffset = readU32LE(view, eocdOff + 16);
+
+  const found = {};
+  let off = cdOffset;
+  const CD_SIG = 0x02014b50;
+  for (let i = 0; i < totalEntries; i++) {
+    if (readU32LE(view, off) !== CD_SIG) break;
+    const compMethod = readU16LE(view, off + 10);
+    const compSize = readU32LE(view, off + 20);
+    const nameLen = readU16LE(view, off + 28);
+    const extraLen = readU16LE(view, off + 30);
+    const commentLen = readU16LE(view, off + 32);
+    const localHeaderOff = readU32LE(view, off + 42);
+    const nameBytes = bytes.subarray(off + 46, off + 46 + nameLen);
+    const name = new TextDecoder('utf-8').decode(nameBytes);
+    if (wantedRegex.test(name)) {
+      found[name] = { compMethod, compSize, localHeaderOff };
+    }
+    off += 46 + nameLen + extraLen + commentLen;
+  }
+
+  const out = {};
+  for (const name in found) {
+    const e = found[name];
+    const lh = e.localHeaderOff;
+    const lNameLen = readU16LE(view, lh + 26);
+    const lExtraLen = readU16LE(view, lh + 28);
+    const dataStart = lh + 30 + lNameLen + lExtraLen;
+    const raw = bytes.subarray(dataStart, dataStart + e.compSize);
+    let data;
+    if (e.compMethod === 0) data = raw;
+    else if (e.compMethod === 8) data = await inflateRawBytes(raw);
+    else throw new Error('지원하지 않는 압축 방식입니다: ' + name);
+    out[name] = new TextDecoder('utf-8').decode(data);
+  }
+  return out;
+}
+
+function colLetterToIndex(ref){
+  const m = String(ref).match(/^([A-Z]+)/);
+  if (!m) return 0;
+  let col = 0;
+  for (const ch of m[1]) col = col * 26 + (ch.charCodeAt(0) - 64);
+  return col - 1;
+}
+
+function parseSharedStrings(xmlText){
+  if (!xmlText) return [];
+  const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+  const siList = doc.getElementsByTagName('si');
+  const arr = [];
+  for (let i = 0; i < siList.length; i++) {
+    const tNodes = siList[i].getElementsByTagName('t');
+    let s = '';
+    for (let j = 0; j < tNodes.length; j++) s += tNodes[j].textContent;
+    arr.push(s);
+  }
+  return arr;
+}
+
+function parseSheetRows(xmlText, sharedStrings){
+  const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+  const rowsEl = doc.getElementsByTagName('row');
+  const rows = [];
+  for (let i = 0; i < rowsEl.length; i++) {
+    const cells = rowsEl[i].getElementsByTagName('c');
+    const rowArr = [];
+    for (let j = 0; j < cells.length; j++) {
+      const c = cells[j];
+      const ref = c.getAttribute('r') || '';
+      const idx = colLetterToIndex(ref);
+      const type = c.getAttribute('t');
+      let val = '';
+      if (type === 'inlineStr') {
+        const isEl = c.getElementsByTagName('is')[0];
+        val = isEl ? isEl.textContent : '';
+      } else {
+        const vEl = c.getElementsByTagName('v')[0];
+        const raw = vEl ? vEl.textContent : '';
+        val = (type === 's') ? (sharedStrings[Number(raw)] || '') : raw;
+      }
+      rowArr[idx] = val;
+    }
+    rows.push(rowArr);
+  }
+  return rows;
+}
+
+async function parseXlsxFile(file){
+  const buf = await file.arrayBuffer();
+  const wanted = /^xl\/(sharedStrings\.xml|worksheets\/sheet\d+\.xml)$/i;
+  const entries = await unzipEntries(buf, wanted);
+  const sheetNames = Object.keys(entries)
+    .filter(n => /^xl\/worksheets\/sheet\d+\.xml$/i.test(n))
+    .sort((a, b) => Number(a.match(/sheet(\d+)\.xml/i)[1]) - Number(b.match(/sheet(\d+)\.xml/i)[1]));
+  if (!sheetNames.length) throw new Error('엑셀 파일에서 워크시트를 찾을 수 없습니다.');
+  const sharedStrings = parseSharedStrings(entries['xl/sharedStrings.xml']);
+  return parseSheetRows(entries[sheetNames[0]], sharedStrings);
+}
+
+/* ---------- admin: 학교 데이터 파일 업로드 처리 (초/중/고 통합) ---------- */
+const HEADER_KEYS = ['year','level','type','region','est','name',
+  'c1','c2','c3','c4','c5','c6','s1','s2','s3','s4','s5','s6','staff'];
+
+function normalizeRegionInput(val){
+  const v = String(val || '').trim();
+  if (!v) return null;
+  if (REGION_ORDER.includes(v)) return v;
+  return REGION_ORDER.find(r => shortRegion(r) === v) || null;
+}
+function normalizeLevelInput(val){
+  const v = String(val || '').trim();
+  if (v === '초' || v.startsWith('초등')) return '초';
+  if (v === '중' || v.startsWith('중학')) return '중';
+  if (v === '고' || v.startsWith('고등')) return '고';
+  return null;
+}
+
+let PENDING_UPLOAD = null;
+let PENDING_HARD_SKIPS = [];
+
+let STAGED_RECORDS = null;
+let STAGED_HARD_SKIPS = [];
+
+function findMatchingSchoolIndex(list, r){
+  return list.findIndex(s => s.level === r.level && s.year === r.year && s.region === r.region && s.name === r.name);
+}
+function schoolContentEqual(a, b){
+  return a.est === b.est && a.type === b.type && a.coed === b.coed && a.staff === b.staff &&
+    JSON.stringify(a.classes) === JSON.stringify(b.classes) &&
+    JSON.stringify(a.students) === JSON.stringify(b.students);
+}
+function diffUploadRecords(records){
+  let added = 0, updated = 0, unchanged = 0;
+  records.forEach(r => {
+    const idx = findMatchingSchoolIndex(SCHOOLS, r);
+    if (idx === -1) added++;
+    else if (!schoolContentEqual(SCHOOLS[idx], r)) updated++;
+    else unchanged++;
+  });
+  return {added, updated, unchanged};
+}
+
+function commitUploadRecords(records, hardSkips){
+  let added = 0, updated = 0, unchanged = 0;
+  records.forEach(r => {
+    const idx = findMatchingSchoolIndex(SCHOOLS, r);
+    if (idx === -1) {
+      SCHOOLS.push(r);
+      added++;
+    } else if (!schoolContentEqual(SCHOOLS[idx], r)) {
+      SCHOOLS[idx] = Object.assign({}, r, {code: SCHOOLS[idx].code});
+      updated++;
+    } else {
+      unchanged++;
+    }
+  });
+  saveSchools(SCHOOLS);
+  refreshAll();
+  if (adminUnlocked) renderAdminTable();
+  const statusEl = document.getElementById('upload-status');
+  statusEl.innerHTML = '';
+  statusEl.className = 'upload-status' + (records.length ? ' success' : ' error');
+  statusEl.textContent = `저장 완료: 신규 ${added}개교 추가 · 갱신 ${updated}개교 · 동일해서 유지 ${unchanged}개교` + (hardSkips.length ? ` · ${hardSkips.length}건 제외됨 (학교급/지역/학교명 확인 필요)` : '') + ' · 기본화면과 초/중/고 탭에 반영되었습니다.';
+}
+
+function stageRecordsForSave(records, hardSkips){
+  STAGED_RECORDS = records;
+  STAGED_HARD_SKIPS = hardSkips;
+  const statusEl = document.getElementById('upload-status');
+  statusEl.innerHTML = '';
+  statusEl.className = 'upload-status';
+
+  const msg = document.createElement('div');
+  msg.textContent = `${records.length}개교 업로드 준비 완료` + (hardSkips.length ? ` · ${hardSkips.length}건 제외됨` : '') + '. 아래 저장 버튼을 눌러야 실제로 반영됩니다.';
+  statusEl.appendChild(msg);
+
+  const diff = diffUploadRecords(records);
+  if (diff.added || diff.updated || diff.unchanged) {
+    const info = document.createElement('div');
+    info.style.fontSize = '12px';
+    info.style.color = '#2563eb';
+    info.style.marginTop = '4px';
+    info.textContent = `저장 시 예상 결과: 신규 추가 ${diff.added}건 · 내용이 달라 갱신 ${diff.updated}건 · 동일해서 유지 ${diff.unchanged}건 (같은 학교급·연도·지역·학교명 기준으로 비교, 파일에 없는 기존 자료는 그대로 유지됩니다)`;
+    statusEl.appendChild(info);
+  }
+
+  const btnRow = document.createElement('div');
+  btnRow.style.marginTop = '8px';
+  btnRow.style.display = 'flex';
+  btnRow.style.gap = '8px';
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'btn primary small';
+  saveBtn.textContent = '저장';
+  saveBtn.addEventListener('click', () => {
+    commitUploadRecords(STAGED_RECORDS, STAGED_HARD_SKIPS);
+    STAGED_RECORDS = null; STAGED_HARD_SKIPS = [];
+  });
+  const discardBtn = document.createElement('button');
+  discardBtn.className = 'btn small';
+  discardBtn.textContent = '취소';
+  discardBtn.addEventListener('click', () => {
+    STAGED_RECORDS = null; STAGED_HARD_SKIPS = [];
+    statusEl.innerHTML = '';
+    statusEl.className = 'upload-status';
+    statusEl.textContent = '업로드가 취소되었습니다.';
+  });
+  btnRow.appendChild(saveBtn);
+  btnRow.appendChild(discardBtn);
+  statusEl.appendChild(btnRow);
+}
+
+function commitPendingUpload(){
+  if (!PENDING_UPLOAD) return;
+  stageRecordsForSave(PENDING_UPLOAD, PENDING_HARD_SKIPS);
+  PENDING_UPLOAD = null;
+  PENDING_HARD_SKIPS = [];
+}
+
+function cancelPendingUpload(){
+  PENDING_UPLOAD = null;
+  PENDING_HARD_SKIPS = [];
+  const statusEl = document.getElementById('upload-status');
+  statusEl.innerHTML = '';
+  statusEl.className = 'upload-status';
+  statusEl.textContent = '업로드가 취소되었습니다.';
+}
+
+function renderPendingUploadPrompt(rowIssues, hardSkips){
+  const statusEl = document.getElementById('upload-status');
+  statusEl.innerHTML = '';
+  statusEl.className = 'upload-status warn';
+
+  const msg = document.createElement('div');
+  msg.textContent = `일부 항목이 비어 있습니다 (${rowIssues.length}건). 무시하고 진행하면 빈 항목은 0 또는 기본값으로 채워집니다.`;
+  statusEl.appendChild(msg);
+
+  const detailLines = rowIssues.slice(0, 10).concat(rowIssues.length > 10 ? [`외 ${rowIssues.length - 10}건`] : []);
+  if (hardSkips.length) {
+    detailLines.push('');
+    detailLines.push('[제외됨 - 학교급/지역/학교명 확인 필요]');
+    detailLines.push(...hardSkips.slice(0, 5));
+    if (hardSkips.length > 5) detailLines.push(`외 ${hardSkips.length - 5}건`);
+  }
+  const detail = document.createElement('div');
+  detail.style.fontSize = '12px';
+  detail.style.whiteSpace = 'pre-line';
+  detail.style.marginTop = '4px';
+  detail.textContent = detailLines.join('\n');
+  statusEl.appendChild(detail);
+
+  const btnRow = document.createElement('div');
+  btnRow.style.marginTop = '8px';
+  btnRow.style.display = 'flex';
+  btnRow.style.gap = '8px';
+  const ignoreBtn = document.createElement('button');
+  ignoreBtn.className = 'btn primary small';
+  ignoreBtn.textContent = '무시하고 계속';
+  ignoreBtn.addEventListener('click', commitPendingUpload);
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn small';
+  cancelBtn.textContent = '취소';
+  cancelBtn.addEventListener('click', cancelPendingUpload);
+  btnRow.appendChild(ignoreBtn);
+  btnRow.appendChild(cancelBtn);
+  statusEl.appendChild(btnRow);
+}
+
+/* ---------- 나이스(NEIS) 등 업로드 양식이 아닌 원본 서식에서 자동으로 항목 추출 ---------- */
+function findHeaderIndex(header, matcher){
+  for (let i = 0; i < header.length; i++) {
+    if (matcher(String(header[i] || '').trim())) return i;
+  }
+  return -1;
+}
+function findNeisHeaderRow(rows){
+  for (let i = 0; i < Math.min(rows.length, 25); i++) {
+    const r = rows[i] || [];
+    if (r.some(v => String(v || '').trim() === '학교코드')) return i;
+  }
+  return -1;
+}
+function findNeisYear(rows){
+  for (let i = 0; i < Math.min(rows.length, 25); i++) {
+    const r = rows[i] || [];
+    if (String(r[0] || '').trim() === '기준년월') {
+      const m = String(r[1] || '').match(/(\d{4})/);
+      if (m) return Number(m[1]);
+    }
+  }
+  return new Date().getFullYear();
+}
+function levelFromFileName(fileName){
+  const n = String(fileName || '').normalize('NFC');
+  if (n.includes('초등학교')) return '초';
+  if (n.includes('중학교')) return '중';
+  if (n.includes('고등학교')) return '고';
+  return null;
+}
+/* 나이스 학교현황 원본(초/중/고)을 감지해서 앱 내부 업로드 양식(UPLOAD_HEADERS 순서)의 행 배열로 변환한다.
+   감지 실패 시 null을 반환하며, 이 경우 원래 오류 메시지가 그대로 표시된다. */
+function convertNeisRowsToUploadRows(rows, fileName){
+  const headerRowIdx = findNeisHeaderRow(rows);
+  if (headerRowIdx === -1) return null;
+  const header = (rows[headerRowIdx] || []).map(h => String(h || '').trim());
+
+  const nameIdx = findHeaderIndex(header, h => h === '학교');
+  const regionIdx = findHeaderIndex(header, h => h === '자치구');
+  const estIdx = findHeaderIndex(header, h => h === '설립구분');
+  if (nameIdx === -1 || regionIdx === -1 || estIdx === -1) return null;
+
+  const typeIdx = findHeaderIndex(header, h => h === '고교유형');
+  const levelColIdx = findHeaderIndex(header, h => h === '학교급');
+  const staffIdx = findHeaderIndex(header, h => h.startsWith('교직원수_교원_계'));
+  const gradeClassIdx = [], gradeStudentIdx = [];
+  for (let g = 1; g <= 6; g++) {
+    gradeClassIdx.push(findHeaderIndex(header, h => h.includes('학급수') && h.includes(g + '학년') && !h.includes('주간') && !h.includes('야간') && !h.includes('특수')));
+    gradeStudentIdx.push(findHeaderIndex(header, h => h.includes('학생수') && h.includes(g + '학년') && !h.includes('주간') && !h.includes('야간') && h.endsWith('계')));
+  }
+
+  const defaultLevel = levelFromFileName(fileName);
+  const year = findNeisYear(rows);
+
+  const outRows = [UPLOAD_HEADERS.slice()];
+  for (let i = headerRowIdx + 1; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const name = String(r[nameIdx] || '').trim();
+    if (!name) continue;
+    const level = (levelColIdx !== -1 && normalizeLevelInput(r[levelColIdx])) || defaultLevel;
+    if (!level) continue;
+    const region = r[regionIdx];
+    const est = r[estIdx];
+    const type = typeIdx !== -1 ? r[typeIdx] : '';
+    const staff = staffIdx !== -1 ? r[staffIdx] : '';
+    const gradeCount = GRADE_COUNT[level];
+    const classesRow = [], studentsRow = [];
+    for (let g = 0; g < 6; g++) {
+      if (g < gradeCount) {
+        classesRow.push(gradeClassIdx[g] !== -1 ? r[gradeClassIdx[g]] : '');
+        studentsRow.push(gradeStudentIdx[g] !== -1 ? r[gradeStudentIdx[g]] : '');
+      } else {
+        classesRow.push('');
+        studentsRow.push('');
+      }
+    }
+    outRows.push([year, level, type, region, est, name, ...classesRow, ...studentsRow, staff]);
+  }
+  return outRows.length > 1 ? outRows : null;
+}
+
+/* ---------- 파일 1개 파싱: 업로드 양식이면 그대로, 아니면 나이스 등 원본 서식 자동 변환을 시도 ---------- */
+async function parseOneFile(file){
+  const rawRows = await parseXlsxFile(file);
+  if (!rawRows.length) throw new Error('데이터가 없는 파일입니다.');
+
+  let rows = rawRows;
+  let header = (rows[0] || []).map(h => String(h || '').trim());
+  let missingCols = HEADER_KEYS.filter((key, i) => header.indexOf(UPLOAD_HEADERS[i]) === -1);
+
+  if (missingCols.length) {
+    const converted = convertNeisRowsToUploadRows(rawRows, file.name);
+    if (converted) {
+      rows = converted;
+      header = rows[0].map(h => String(h || '').trim());
+      missingCols = HEADER_KEYS.filter((key, i) => header.indexOf(UPLOAD_HEADERS[i]) === -1);
+    }
+  }
+  if (missingCols.length) {
+    throw new Error('업로드 양식과 일치하지 않고, 자동 인식 가능한 서식(나이스 학교현황 등)도 아닙니다. 필수 컬럼: ' + missingCols.map(k => UPLOAD_HEADERS[HEADER_KEYS.indexOf(k)]).join(', ') + ' (읽은 헤더: ' + header.join(', ') + ')');
+  }
+
+  const idx = {};
+  HEADER_KEYS.forEach((key, i) => { idx[key] = header.indexOf(UPLOAD_HEADERS[i]); });
+
+  const records = [];
+  const rowIssues = [];
+  const hardSkips = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const isBlankRow = r.every(v => v === undefined || v === null || String(v).trim() === '');
+    if (isBlankRow) continue;
+
+    const levelRaw = r[idx.level];
+    const level = normalizeLevelInput(levelRaw);
+    const regionRaw = r[idx.region];
+    const region = normalizeRegionInput(regionRaw);
+    const name = String(r[idx.name] || '').trim();
+
+    const hardProblems = [];
+    if (!level) hardProblems.push(`학교급 인식 불가("${levelRaw || ''}")`);
+    if (!region) hardProblems.push(`지역 인식 불가("${regionRaw || ''}")`);
+    if (!name) hardProblems.push('학교명 없음');
+    if (hardProblems.length) {
+      hardSkips.push(`[${file.name}] ${i + 1}행: ` + hardProblems.join(', '));
+      continue;
+    }
+
+    const gradeCount = GRADE_COUNT[level];
+    const softMissing = [];
+
+    let year = Number(r[idx.year]);
+    if (r[idx.year] === undefined || r[idx.year] === '' || isNaN(year)) { softMissing.push('기준연도'); year = new Date().getFullYear(); }
+
+    let type = String(r[idx.type] || '').trim();
+    if (level === '고' && !type) softMissing.push('학교유형');
+
+    const classesVals = [], studentsVals = [];
+    for (let g = 1; g <= 6; g++) {
+      if (g <= gradeCount) {
+        const cRaw = r[idx['c' + g]];
+        const sRaw = r[idx['s' + g]];
+        const cNum = Number(cRaw), sNum = Number(sRaw);
+        if (cRaw === undefined || cRaw === '' || isNaN(cNum)) { softMissing.push(`${g}학년 학급수`); classesVals.push(0); }
+        else classesVals.push(cNum);
+        if (sRaw === undefined || sRaw === '' || isNaN(sNum)) { softMissing.push(`${g}학년 학생수`); studentsVals.push(0); }
+        else studentsVals.push(sNum);
+      } else {
+        classesVals.push(0);
+        studentsVals.push(0);
+      }
+    }
+
+    let est = String(r[idx.est] || '').trim();
+    if (!est) { softMissing.push('설립'); est = '-'; }
+
+    const staffRaw = r[idx.staff];
+    const staffNum = Number(staffRaw);
+    let staff = 0;
+    if (staffRaw === undefined || staffRaw === '' || isNaN(staffNum)) { softMissing.push('교사수'); }
+    else staff = staffNum;
+
+    if (softMissing.length) rowIssues.push(`[${file.name}] ${i + 1}행 (${name}): ` + softMissing.join(', ') + ' 미기재');
+
+    records.push({
+      region, est, name,
+      code: 'UPLOAD-' + level + '-' + year + '-' + Date.now() + '-' + i + '-' + Math.floor(Math.random() * 1e6),
+      type: level === '고' ? type : '', coed: '-', level, year,
+      staff,
+      classes: {total: classesVals.reduce((a,b)=>a+b,0), g1:classesVals[0], g2:classesVals[1], g3:classesVals[2], g4:classesVals[3], g5:classesVals[4], g6:classesVals[5], special:0},
+      students: {total: studentsVals.reduce((a,b)=>a+b,0), g1:studentsVals[0], g2:studentsVals[1], g3:studentsVals[2], g4:studentsVals[3], g5:studentsVals[4], g6:studentsVals[5], male:0, female:0}
+    });
+  }
+
+  return {records, rowIssues, hardSkips};
+}
+
+/* ---------- 복수 파일 업로드 처리 ---------- */
+async function handleFilesUpload(fileList){
+  const statusEl = document.getElementById('upload-status');
+  statusEl.innerHTML = '';
+  statusEl.className = 'upload-status';
+  const files = Array.from(fileList);
+  statusEl.textContent = files.length > 1 ? `파일 ${files.length}개를 읽는 중...` : '파일을 읽는 중...';
+  PENDING_UPLOAD = null;
+  PENDING_HARD_SKIPS = [];
+
+  const allRecords = [];
+  const allRowIssues = [];
+  const allHardSkips = [];
+
+  for (const file of files) {
+    try {
+      const {records, rowIssues, hardSkips} = await parseOneFile(file);
+      allRecords.push(...records);
+      allRowIssues.push(...rowIssues);
+      allHardSkips.push(...hardSkips);
+    } catch (err) {
+      allHardSkips.push(`[${file.name}] 파일 처리 실패: ${err.message}`);
+    }
+  }
+
+  if (!allRecords.length) {
+    statusEl.className = 'upload-status error';
+    statusEl.textContent = allHardSkips.length ? '처리할 수 있는 자료가 없습니다.\n' + allHardSkips.join('\n') : '처리할 데이터가 없습니다.';
+    return;
+  }
+
+  if (allRowIssues.length || allHardSkips.length) {
+    PENDING_UPLOAD = allRecords;
+    PENDING_HARD_SKIPS = allHardSkips;
+    renderPendingUploadPrompt(allRowIssues, allHardSkips);
+    return;
+  }
+
+  stageRecordsForSave(allRecords, allHardSkips);
+}
+
+/* ---------- minimal XLSX writer (no external libraries; ZIP with STORE/no compression) ---------- */
+let CRC32_TABLE = null;
+function crc32(bytes){
+  if (!CRC32_TABLE) {
+    CRC32_TABLE = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      CRC32_TABLE[n] = c >>> 0;
+    }
+  }
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) crc = CRC32_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function buildZip(files){
+  const encoder = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+  const now = new Date();
+  const dosTime = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xFFFF;
+  const dosDate = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
+
+  files.forEach(f => {
+    const nameBytes = encoder.encode(f.name);
+    const data = f.data;
+    const crc = crc32(data);
+    const size = data.length;
+
+    const local = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0, true);
+    lv.setUint16(8, 0, true);
+    lv.setUint16(10, dosTime, true);
+    lv.setUint16(12, dosDate, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, size, true);
+    lv.setUint32(22, size, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);
+    local.set(nameBytes, 30);
+    localParts.push(local, data);
+
+    const central = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(central.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, dosTime, true);
+    cv.setUint16(14, dosDate, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, size, true);
+    cv.setUint32(24, size, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint16(30, 0, true);
+    cv.setUint16(32, 0, true);
+    cv.setUint16(34, 0, true);
+    cv.setUint16(36, 0, true);
+    cv.setUint32(38, 0, true);
+    cv.setUint32(42, offset, true);
+    central.set(nameBytes, 46);
+    centralParts.push(central);
+
+    offset += local.length + data.length;
+  });
+
+  const centralStart = offset;
+  const centralSize = centralParts.reduce((a, p) => a + p.length, 0);
+
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(8, files.length, true);
+  ev.setUint16(10, files.length, true);
+  ev.setUint32(12, centralSize, true);
+  ev.setUint32(16, centralStart, true);
+
+  return new Blob([...localParts, ...centralParts, eocd], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+const UPLOAD_HEADERS = ['기준연도','학교급','학교유형','지역','설립','학교명',
+  '1학년 학급수','2학년 학급수','3학년 학급수','4학년 학급수','5학년 학급수','6학년 학급수',
+  '1학년 학생수','2학년 학생수','3학년 학생수','4학년 학생수','5학년 학생수','6학년 학생수',
+  '교사수'];
+
+function colIndexToLetter(idx){
+  let s = '', n = idx + 1;
+  while (n > 0) { const rem = (n - 1) % 26; s = String.fromCharCode(65 + rem) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+
+function downloadUploadTemplate(){
+  const enc = new TextEncoder();
+  const contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>';
+  const rootRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+  const workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>';
+  const workbookRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>';
+
+  const cellStr = (rowN, colIdx, text) => `<c r="${colIndexToLetter(colIdx)}${rowN}" t="inlineStr"><is><t>${xmlEscape(text)}</t></is></c>`;
+  const cellNum = (rowN, colIdx, num) => `<c r="${colIndexToLetter(colIdx)}${rowN}"><v>${num}</v></c>`;
+  function buildRow(rowN, values){
+    let xml = `<row r="${rowN}">`;
+    values.forEach((v, i) => {
+      if (v === null || v === undefined || v === '') return;
+      xml += (typeof v === 'number') ? cellNum(rowN, i, v) : cellStr(rowN, i, v);
+    });
+    return xml + '</row>';
+  }
+
+  const headerRow = buildRow(1, UPLOAD_HEADERS);
+  const elemRow = buildRow(2, [2025,'초',null,'춘천','공립','춘천예시초등학교', 3,3,3,3,3,3, 60,60,60,60,60,60, 20]);
+  const midRow = buildRow(3, [2025,'중',null,'원주','공립','원주예시중학교', 5,5,5,null,null,null, 100,100,100,null,null,null, 15]);
+  const highRow = buildRow(4, [2025,'고','일반고','강릉','사립','강릉예시고등학교', 6,6,6,null,null,null, 150,150,150,null,null,null, 25]);
+  const sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + headerRow + elemRow + midRow + highRow + '</sheetData></worksheet>';
+
+  const files = [
+    {name: '[Content_Types].xml', data: enc.encode(contentTypes)},
+    {name: '_rels/.rels', data: enc.encode(rootRels)},
+    {name: 'xl/workbook.xml', data: enc.encode(workbook)},
+    {name: 'xl/_rels/workbook.xml.rels', data: enc.encode(workbookRels)},
+    {name: 'xl/worksheets/sheet1.xml', data: enc.encode(sheet)}
+  ];
+  const blob = buildZip(files);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = '학교현황_업로드_양식.xlsx';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- admin ---------- */
+let adminUnlocked = false;
+function initAdmin(){
+  document.getElementById('admin-login-btn').addEventListener('click', tryAdminLogin);
+  document.getElementById('admin-pw').addEventListener('keydown', e=>{ if (e.key==='Enter') tryAdminLogin(); });
+}
+function tryAdminLogin(){
+  const pw = document.getElementById('admin-pw').value;
+  if (pw === getAdminPassword()) {
+    adminUnlocked = true;
+    document.getElementById('admin-login').hidden = true;
+    document.getElementById('admin-panel').hidden = false;
+    renderAdminPanel();
+  } else {
+    document.getElementById('admin-login-err').hidden = false;
+  }
+}
+
+function renderAdminPanel(){
+  const panel = document.getElementById('admin-panel');
+  panel.innerHTML = `
+    <div class="card">
+      <h2>화면 구성 변경</h2>
+      <label class="check-item" style="display:flex;width:fit-content;margin-bottom:8px;"><input type="checkbox" id="opt-sec-region" ${SETTINGS.sections.region?'checked':''}> 시군별 학교현황 그래프 표시</label>
+      <label class="check-item" style="display:flex;width:fit-content;"><input type="checkbox" id="opt-sec-grade" ${SETTINGS.sections.grade?'checked':''}> 학년별 학생수 그래프 표시</label>
+    </div>
+    <div class="card">
+      <h2>그래프 종류 변경</h2>
+      <p class="sub">항목별로 그래프 유형을 지정할 수 있습니다.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="filter-item">
+          <label for="opt-chart-type-homeRegion">도내 시군별 학교 수</label>
+          <select id="opt-chart-type-homeRegion">
+            <option value="bar" ${SETTINGS.chartTypes.homeRegion==='bar'?'selected':''}>막대그래프</option>
+            <option value="line" ${SETTINGS.chartTypes.homeRegion==='line'?'selected':''}>선그래프</option>
+            <option value="pie" ${SETTINGS.chartTypes.homeRegion==='pie'?'selected':''}>원그래프 (단일 항목만 적용)</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="opt-chart-type-homeGrade">도내 학년별 학생 수</label>
+          <select id="opt-chart-type-homeGrade">
+            <option value="bar" ${SETTINGS.chartTypes.homeGrade==='bar'?'selected':''}>막대그래프</option>
+            <option value="line" ${SETTINGS.chartTypes.homeGrade==='line'?'selected':''}>선그래프</option>
+            <option value="pie" ${SETTINGS.chartTypes.homeGrade==='pie'?'selected':''}>원그래프 (단일 항목만 적용)</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="opt-chart-type-homeRank">항목별 학교 순위</label>
+          <select id="opt-chart-type-homeRank">
+            <option value="bar" ${SETTINGS.chartTypes.homeRank==='bar'?'selected':''}>막대그래프</option>
+            <option value="line" ${SETTINGS.chartTypes.homeRank==='line'?'selected':''}>선그래프</option>
+            <option value="pie" ${SETTINGS.chartTypes.homeRank==='pie'?'selected':''}>원그래프 (단일 항목만 적용)</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="opt-chart-type">그 외 그래프 (기본값)</label>
+          <select id="opt-chart-type">
+            <option value="bar" ${SETTINGS.chartType==='bar'?'selected':''}>막대그래프</option>
+            <option value="line" ${SETTINGS.chartType==='line'?'selected':''}>선그래프</option>
+            <option value="pie" ${SETTINGS.chartType==='pie'?'selected':''}>원그래프 (단일 항목만 적용)</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="opt-chart-type-yearchange">연도별 변화 (초·중·고 / 초1~고3 비교 그래프)</label>
+          <select id="opt-chart-type-yearchange">
+            <option value="radar" ${SETTINGS.yearChangeChartType!=='line'?'selected':''}>다각형 그래프 (기본값 · 초·중·고 / 초1~고3 비교 그래프에 적용)</option>
+            <option value="line" ${SETTINGS.yearChangeChartType==='line'?'selected':''}>선그래프</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>기준연도 관리</h2>
+      <p class="sub">아직 자료가 없는 연도를 미리 추가하거나, 웹페이지 첫 화면에 기본으로 표시할 연도를 설정할 수 있습니다.</p>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+        <input type="number" id="year-add-input" placeholder="추가할 연도" style="width:120px;" min="2000" max="2100">
+        <button id="btn-add-year" class="btn">연도 추가</button>
+      </div>
+      <div id="extra-year-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
+      <div class="filter-item" style="max-width:220px;">
+        <label for="opt-default-year">웹페이지 첫 화면 기본 연도</label>
+        <select id="opt-default-year"></select>
+      </div>
+    </div>
+    <div class="card">
+      <h2>관리자 비밀번호 변경</h2>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <input type="password" id="pw-new" placeholder="새 비밀번호 (4자 이상)">
+        <input type="password" id="pw-confirm" placeholder="새 비밀번호 확인">
+        <button id="btn-change-pw" class="btn primary" style="width:fit-content;">비밀번호 변경</button>
+        <p id="pw-change-status" class="upload-status"></p>
+      </div>
+    </div>
+    <div class="card wide">
+      <h2>학교 데이터 파일 추가</h2>
+      <p class="sub">엑셀(.xlsx) 파일의 첫 번째 시트를 읽습니다. 여러 파일을 한 번에 선택할 수 있습니다(예: 초·중·고 파일을 따로따로 선택). 아래 양식대로 만든 파일은 물론, <strong>나이스(NEIS) 학교현황 원본 파일(초·중·고 현황)도 그대로 업로드하면 자동으로 항목을 인식해서 반영</strong>합니다. 파일을 선택하면 내용을 미리 확인한 뒤, 저장 버튼을 눌러야 실제로 반영됩니다. <strong>학교급·연도·지역·학교명이 같은 학교는 내용이 다를 때만 최신 자료로 갱신되고, 파일에 없는 기존 자료는 그대로 유지됩니다.</strong></p>
+      <div style="margin-bottom:10px;">
+        <button id="btn-download-template" class="btn">업로드 양식 다운로드 (.xlsx)</button>
+      </div>
+      <div class="admin-form" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+        <input type="file" id="upload-file" accept=".xlsx" multiple>
+      </div>
+      <p id="upload-status" class="upload-status"></p>
+    </div>
+    <div class="card wide">
+      <h2>데이터 관리 (<span id="admin-count">${SCHOOLS.length}</span>개교)</h2>
+      <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button id="btn-add-school" class="btn primary">+ 새 학교 추가</button>
+        <input type="text" id="admin-search-input" placeholder="학교명 검색" style="padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;">
+        <button id="btn-admin-search" class="btn">학교명 검색</button>
+        <button id="btn-admin-search-clear" class="btn" hidden>전체 보기</button>
+      </div>
+      <div id="school-form-card" class="card" style="background:#f9fafb;" hidden>
+        <h3 id="sf-title" style="margin:0 0 10px;font-size:15px;">새 학교 추가</h3>
+        <div id="school-form-body"></div>
+      </div>
+      <div class="table-wrap tall">
+        <table id="admin-table">
+          <thead><tr><th>학교급</th><th>연도</th><th>지역</th><th>설립</th><th>학교명</th><th>유형</th><th>학생수(계)</th><th>관리</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card wide">
+      <h2>웹사이트(깃허브)에 자료 반영하기</h2>
+      <p class="sub">지금까지의 수정 내용은 이 브라우저에만 저장되어 있습니다. 다른 방문자에게도 보이게 하려면, 아래 버튼으로 <strong>data.json</strong> 파일을 내려받아 깃허브 저장소의 기존 data.json 파일을 덮어쓴 뒤 커밋·푸시해 주세요.</p>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;">
+        <button id="btn-export-datajson" class="btn primary">data.json 다운로드 (배포용)</button>
+        <p id="datajson-dl-status" class="upload-status"></p>
+      </div>
+    </div>
+    <div class="card wide">
+      <h2>오프라인용 페이지 다운로드</h2>
+      <p class="sub">인터넷 연결 없이도 열어볼 수 있는 단일 HTML 파일을 만듭니다. 지금 이 화면(브라우저)에 반영된 자료가 그대로 파일 안에 포함되며, 만든 파일을 더블클릭하면 오프라인에서도 대시보드를 볼 수 있습니다.</p>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;">
+        <button id="btn-export-offline" class="btn">오프라인용 HTML 파일 다운로드</button>
+        <p id="offline-dl-status" class="upload-status"></p>
+      </div>
+    </div>
+    <div class="card">
+      <h2>백업 / 계정</h2>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;">
+        <button id="btn-export" class="btn">JSON으로 내보내기</button>
+        <button id="btn-reset-data" class="btn danger">원본 데이터로 초기화</button>
+        <button id="btn-logout" class="btn">로그아웃</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('opt-sec-region').addEventListener('change', e=>{ SETTINGS.sections.region=e.target.checked; saveSettings(SETTINGS); toggleSectionVisibility(); });
+  document.getElementById('opt-sec-grade').addEventListener('change', e=>{ SETTINGS.sections.grade=e.target.checked; saveSettings(SETTINGS); toggleSectionVisibility(); });
+  document.getElementById('opt-chart-type').addEventListener('change', e=>{ SETTINGS.chartType=e.target.value; saveSettings(SETTINGS); doSearch(); });
+  document.getElementById('opt-chart-type-yearchange').addEventListener('change', e=>{
+    SETTINGS.yearChangeChartType = e.target.value;
+    saveSettings(SETTINGS);
+    if (YEARCHANGE_INIT) doYearChangeSearch();
+  });
+  ['homeRegion','homeGrade','homeRank'].forEach(key=>{
+    document.getElementById(`opt-chart-type-${key}`).addEventListener('change', e=>{
+      SETTINGS.chartTypes[key] = e.target.value;
+      saveSettings(SETTINGS);
+      doSearch();
+    });
+  });
+  document.getElementById('btn-add-year').addEventListener('click', ()=>{
+    const input = document.getElementById('year-add-input');
+    const y = Number(input.value);
+    if (!y || y < 2000 || y > 2100) { alert('올바른 연도를 입력하세요 (2000~2100).'); return; }
+    if (!SETTINGS.extraYears) SETTINGS.extraYears = [];
+    if (!SETTINGS.extraYears.includes(y)) SETTINGS.extraYears.push(y);
+    saveSettings(SETTINGS);
+    input.value = '';
+    refreshAll();
+    renderYearAdminUI();
+  });
+  document.getElementById('opt-default-year').addEventListener('change', (e)=>{
+    SETTINGS.defaultYear = e.target.value ? Number(e.target.value) : null;
+    saveSettings(SETTINGS);
+    refreshAll();
+  });
+  document.getElementById('btn-change-pw').addEventListener('click', ()=>{
+    const pw1 = document.getElementById('pw-new').value;
+    const pw2 = document.getElementById('pw-confirm').value;
+    const statusEl = document.getElementById('pw-change-status');
+    if (pw1.length < 4) { statusEl.className = 'upload-status error'; statusEl.textContent = '비밀번호는 4자 이상이어야 합니다.'; return; }
+    if (pw1 !== pw2) { statusEl.className = 'upload-status error'; statusEl.textContent = '비밀번호가 일치하지 않습니다.'; return; }
+    setAdminPassword(pw1);
+    statusEl.className = 'upload-status success';
+    statusEl.textContent = '비밀번호가 변경되었습니다. 다음 로그인부터 새 비밀번호를 사용해 주세요.';
+    document.getElementById('pw-new').value = '';
+    document.getElementById('pw-confirm').value = '';
+  });
+  document.getElementById('upload-file').addEventListener('change', (e)=>{
+    if (!e.target.files || !e.target.files.length) return;
+    handleFilesUpload(e.target.files);
+    e.target.value = '';
+  });
+  document.getElementById('btn-download-template').addEventListener('click', downloadUploadTemplate);
+  document.getElementById('btn-add-school').addEventListener('click', ()=>openSchoolForm(null));
+  document.getElementById('btn-admin-search').addEventListener('click', ()=>{
+    ADMIN_SEARCH_TERM = document.getElementById('admin-search-input').value.trim();
+    renderAdminTable();
+  });
+  document.getElementById('admin-search-input').addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter') {
+      ADMIN_SEARCH_TERM = document.getElementById('admin-search-input').value.trim();
+      renderAdminTable();
+    }
+  });
+  document.getElementById('btn-admin-search-clear').addEventListener('click', ()=>{
+    ADMIN_SEARCH_TERM = '';
+    document.getElementById('admin-search-input').value = '';
+    renderAdminTable();
+  });
+  document.getElementById('btn-export').addEventListener('click', exportData);
+  document.getElementById('btn-export-datajson').addEventListener('click', exportDataJSON);
+  document.getElementById('btn-export-offline').addEventListener('click', downloadOfflineHTML);
+  document.getElementById('btn-reset-data').addEventListener('click', resetData);
+  document.getElementById('btn-logout').addEventListener('click', ()=>{
+    adminUnlocked = false;
+    document.getElementById('admin-panel').hidden = true;
+    document.getElementById('admin-login').hidden = false;
+    document.getElementById('admin-pw').value = '';
+    document.getElementById('admin-login-err').hidden = true;
+  });
+  renderAdminTable();
+  renderYearAdminUI();
+  toggleSectionVisibility();
+}
+
+function allKnownYears(){
+  const set = new Set();
+  SCHOOLS.forEach(s => { if (s.year) set.add(s.year); });
+  (SETTINGS.extraYears || []).forEach(y => set.add(y));
+  set.add(new Date().getFullYear());
+  return [...set].sort((a,b)=>a-b);
+}
+
+function renderYearAdminUI(){
+  const listEl = document.getElementById('extra-year-list');
+  if (listEl) {
+    const extra = (SETTINGS.extraYears || []).slice().sort((a,b)=>a-b);
+    listEl.innerHTML = extra.length ? extra.map(y=>
+      `<span class="check-item">${y}년 <button class="btn small danger" data-remove-year="${y}" style="margin-left:4px;padding:1px 8px;">삭제</button></span>`
+    ).join('') : '<p class="empty" style="margin:0;">추가된 연도가 없습니다.</p>';
+    listEl.querySelectorAll('button[data-remove-year]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const y = Number(btn.dataset.removeYear);
+        SETTINGS.extraYears = (SETTINGS.extraYears || []).filter(v=>v!==y);
+        if (SETTINGS.defaultYear === y) SETTINGS.defaultYear = null;
+        saveSettings(SETTINGS);
+        refreshAll();
+        renderYearAdminUI();
+      });
+    });
+  }
+  const defSel = document.getElementById('opt-default-year');
+  if (defSel) {
+    const years = allKnownYears();
+    defSel.innerHTML = '<option value="">(설정 안 함 - 현재 연도)</option>' + years.map(y=>`<option value="${y}">${y}년</option>`).join('');
+    defSel.value = SETTINGS.defaultYear ? String(SETTINGS.defaultYear) : '';
+  }
+}
+
+function toggleSectionVisibility(){
+  const regionCard = document.getElementById('res-all-chart-region')?.closest('.card');
+  const gradeCard = document.getElementById('res-all-chart-grade')?.closest('.card');
+  if (regionCard) regionCard.style.display = SETTINGS.sections.region ? '' : 'none';
+  if (gradeCard) gradeCard.style.display = SETTINGS.sections.grade ? '' : 'none';
+}
+
+let ADMIN_SEARCH_TERM = '';
+
+function renderAdminTable(){
+  const tbody = document.querySelector('#admin-table tbody');
+  if (!tbody) return;
+  const countEl = document.getElementById('admin-count');
+  if (countEl) countEl.textContent = SCHOOLS.length;
+  const clearBtn = document.getElementById('btn-admin-search-clear');
+  if (clearBtn) clearBtn.hidden = !ADMIN_SEARCH_TERM;
+  const pairs = SCHOOLS.map((s,idx)=>({s,idx}))
+    .filter(({s})=> !ADMIN_SEARCH_TERM || s.name.includes(ADMIN_SEARCH_TERM));
+  if (!pairs.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">"${ADMIN_SEARCH_TERM}"에 해당하는 학교를 찾을 수 없습니다.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = pairs.map(({s,idx})=>`
+    <tr>
+      <td>${LEVEL_NAMES[s.level]||s.level}</td><td>${s.year||'-'}</td><td>${s.region}</td><td>${s.est}</td><td>${s.name}</td><td>${s.type||'-'}</td>
+      <td>${s.students.total.toLocaleString()}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn small" data-edit-idx="${idx}">수정</button>
+        <button class="btn small danger" data-idx="${idx}">삭제</button>
+      </td>
+    </tr>
+  `).join('');
+  tbody.querySelectorAll('button[data-idx]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const idx = Number(btn.dataset.idx);
+      if (confirm(`${SCHOOLS[idx].name}을(를) 삭제하시겠습니까?`)) {
+        SCHOOLS.splice(idx,1);
+        saveSchools(SCHOOLS);
+        refreshAll();
+      }
+    });
+  });
+  tbody.querySelectorAll('button[data-edit-idx]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      openSchoolForm(Number(btn.dataset.editIdx));
+    });
+  });
+}
+
+/* ---------- admin: 학교 추가/수정 폼 ---------- */
+let EDITING_INDEX = null;
+
+function openSchoolForm(idx){
+  EDITING_INDEX = (idx === undefined || idx === null) ? null : idx;
+  const s = EDITING_INDEX != null ? SCHOOLS[EDITING_INDEX] : null;
+  document.getElementById('sf-title').textContent = s ? `${s.name} 수정` : '새 학교 추가';
+  const formCard = document.getElementById('school-form-card');
+  formCard.hidden = false;
+  renderSchoolFormFields(s);
+  formCard.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function closeSchoolForm(){
+  EDITING_INDEX = null;
+  document.getElementById('school-form-card').hidden = true;
+}
+
+function renderSchoolFormFields(s){
+  const level = s ? s.level : '고';
+  const body = document.getElementById('school-form-body');
+  body.innerHTML = `
+    <div class="admin-form">
+      <select id="sf-level">
+        <option value="초">초등학교</option>
+        <option value="중">중학교</option>
+        <option value="고">고등학교</option>
+      </select>
+      <input type="number" id="sf-year" placeholder="연도" min="2000" max="2100">
+      <select id="sf-region">${REGION_ORDER.map(r=>`<option value="${r}">${r}</option>`).join('')}</select>
+      <select id="sf-est"><option>공립</option><option>사립</option><option>국립</option></select>
+      <input id="sf-name" placeholder="학교명">
+      <input id="sf-type" placeholder="학교유형 (고등학교만 해당)">
+      <input id="sf-staff" type="number" min="0" placeholder="교사수">
+    </div>
+    <p class="sub" style="margin:10px 0 6px;">학년별 학급수 / 학생수</p>
+    <div id="sf-grades" class="admin-form"></div>
+    <div style="margin-top:10px;display:flex;gap:8px;">
+      <button id="sf-save" class="btn primary">저장</button>
+      <button id="sf-cancel" class="btn">취소</button>
+    </div>
+  `;
+  document.getElementById('sf-level').value = level;
+  document.getElementById('sf-level').addEventListener('change', ()=>renderGradeFields(document.getElementById('sf-level').value, s));
+  document.getElementById('sf-year').value = s ? s.year : new Date().getFullYear();
+  document.getElementById('sf-region').value = s ? s.region : REGION_ORDER[0];
+  document.getElementById('sf-est').value = s ? s.est : '공립';
+  document.getElementById('sf-name').value = s ? s.name : '';
+  document.getElementById('sf-type').value = s ? (s.type||'') : '';
+  document.getElementById('sf-staff').value = s ? s.staff : 0;
+  renderGradeFields(level, s);
+
+  document.getElementById('sf-save').addEventListener('click', saveSchoolForm);
+  document.getElementById('sf-cancel').addEventListener('click', closeSchoolForm);
+}
+
+function renderGradeFields(level, s){
+  const gradeCount = GRADE_COUNT[level];
+  const wrap = document.getElementById('sf-grades');
+  wrap.innerHTML =
+    Array.from({length:gradeCount},(_,i)=>i+1).map(g=>`<input type="number" min="0" id="sf-c${g}" placeholder="${g}학년 학급수" value="${s ? (s.classes['g'+g]||0) : 0}">`).join('') +
+    Array.from({length:gradeCount},(_,i)=>i+1).map(g=>`<input type="number" min="0" id="sf-s${g}" placeholder="${g}학년 학생수" value="${s ? (s.students['g'+g]||0) : 0}">`).join('');
+}
+
+function saveSchoolForm(){
+  const level = document.getElementById('sf-level').value;
+  const gradeCount = GRADE_COUNT[level];
+  const name = document.getElementById('sf-name').value.trim();
+  if (!name) { alert('학교명을 입력하세요.'); return; }
+  const year = Number(document.getElementById('sf-year').value) || new Date().getFullYear();
+  const region = document.getElementById('sf-region').value;
+  const est = document.getElementById('sf-est').value;
+  const type = level === '고' ? document.getElementById('sf-type').value.trim() : '';
+  const staff = Number(document.getElementById('sf-staff').value) || 0;
+  const classes = {total:0,g1:0,g2:0,g3:0,g4:0,g5:0,g6:0,special:0};
+  const students = {total:0,g1:0,g2:0,g3:0,g4:0,g5:0,g6:0,male:0,female:0};
+  for (let g=1; g<=gradeCount; g++){
+    const c = Number(document.getElementById('sf-c'+g).value) || 0;
+    const st = Number(document.getElementById('sf-s'+g).value) || 0;
+    classes['g'+g] = c; classes.total += c;
+    students['g'+g] = st; students.total += st;
+  }
+  const record = {
+    region, est, name,
+    code: EDITING_INDEX != null ? SCHOOLS[EDITING_INDEX].code : 'MANUAL-' + Date.now(),
+    type, coed: EDITING_INDEX != null ? SCHOOLS[EDITING_INDEX].coed : '-',
+    level, year, staff, classes, students
+  };
+  if (EDITING_INDEX != null) SCHOOLS[EDITING_INDEX] = record;
+  else SCHOOLS.push(record);
+
+  saveSchools(SCHOOLS);
+  closeSchoolForm();
+  refreshAll();
+  renderAdminTable();
+}
+
+function exportData(){
+  const blob = new Blob([JSON.stringify(SCHOOLS, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'gwedu_schools_backup.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function resetData(){
+  if (!confirm('로컬에 저장된 변경사항을 모두 지우고 원본 데이터로 되돌립니다. 계속할까요?')) return;
+  SCHOOLS = JSON.parse(JSON.stringify(BASE_SCHOOLS));
+  saveSchools(SCHOOLS);
+  refreshAll();
+}
+
+function exportDataJSON(){
+  triggerDownload('data.json', JSON.stringify(SCHOOLS, null, 1), 'application/json;charset=utf-8;');
+  const statusEl = document.getElementById('datajson-dl-status');
+  if (statusEl) {
+    statusEl.className = 'upload-status success';
+    statusEl.textContent = '다운로드 완료! 이 파일로 저장소의 data.json을 교체하고 커밋·푸시하면 모든 방문자에게 반영됩니다.';
+  }
+}
+
+async function downloadOfflineHTML(){
+  const statusEl = document.getElementById('offline-dl-status');
+  if (statusEl) { statusEl.className = 'upload-status'; statusEl.textContent = '생성 중...'; }
+  try {
+    const res = await fetch(document.location.href, {cache:'no-store'});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    let html = await res.text();
+    const dataScript = `<script>window.__EMBEDDED_SCHOOLS__ = ${JSON.stringify(SCHOOLS)};<\/script>\n`;
+    html = html.includes('</head>') ? html.replace('</head>', dataScript + '</head>') : dataScript + html;
+    triggerDownload('강원도_학교현황_오프라인.html', html, 'text/html;charset=utf-8;');
+    if (statusEl) {
+      statusEl.className = 'upload-status success';
+      statusEl.textContent = '다운로드 완료! 인터넷 연결 없이 이 파일을 더블클릭해서 열 수 있습니다.';
+    }
+  } catch(e) {
+    if (statusEl) {
+      statusEl.className = 'upload-status error';
+      statusEl.textContent = '생성 실패: 이 기능은 웹서버(http/https)로 접속했을 때만 사용할 수 있습니다. (' + e.message + ')';
+    }
+  }
+}
+
+function refreshAll(){
+  populateYearOptions();
+  populateDatalist(document.getElementById('f-region').value);
+  doSearch();
+  renderLevelView(CURRENT_LEVEL);
+  if (adminUnlocked) renderAdminTable();
+  if (YEARCHANGE_INIT) { populateYearChangeYearOptions(); doYearChangeSearch(); }
+}
+
+/* ---------- 연도별 변화 ---------- */
+let YEARCHANGE_INIT = false;
+
+function initYearChangeView(){
+  if (YEARCHANGE_INIT) return;
+  YEARCHANGE_INIT = true;
+  const regionSel = document.getElementById('yc-region');
+  regionSel.innerHTML = '<option value="">전체</option>' + REGION_ORDER.map(r=>`<option value="${r}">${shortRegion(r)}</option>`).join('');
+  document.getElementById('btn-yc-search').addEventListener('click', doYearChangeSearch);
+  document.getElementById('btn-yc-reset').addEventListener('click', ()=>{
+    document.getElementById('yc-region').value = '';
+    document.getElementById('yc-level').value = '';
+    document.getElementById('yc-name').value = '';
+    populateYearChangeYearOptions(true);
+    doYearChangeSearch();
+  });
+}
+
+function populateYearChangeYearOptions(reset){
+  const startSel = document.getElementById('yc-start-year');
+  const endSel = document.getElementById('yc-end-year');
+  const years = allKnownYears();
+  const optsHtml = years.map(y=>`<option value="${y}">${y}년</option>`).join('');
+  const prevStart = startSel.value, prevEnd = endSel.value;
+  startSel.innerHTML = optsHtml;
+  endSel.innerHTML = optsHtml;
+  const defStart = years.includes(2025) ? 2025 : years[0];
+  const defEnd = years.includes(2026) ? 2026 : years[years.length-1];
+  if (!reset && prevStart && years.includes(Number(prevStart))) startSel.value = prevStart;
+  else startSel.value = String(defStart);
+  if (!reset && prevEnd && years.includes(Number(prevEnd))) endSel.value = prevEnd;
+  else endSel.value = String(defEnd);
+}
+
+function doYearChangeSearch(){
+  const startYear = Number(document.getElementById('yc-start-year').value);
+  const endYear = Number(document.getElementById('yc-end-year').value);
+  const region = document.getElementById('yc-region').value;
+  const level = document.getElementById('yc-level').value;
+  const name = document.getElementById('yc-name').value.trim();
+
+  const container = document.getElementById('yc-results');
+  const note = document.getElementById('yc-note');
+  note.hidden = true; note.textContent = '';
+  container.innerHTML = '';
+
+  if (!startYear || !endYear) { note.hidden = true; return; }
+  if (startYear > endYear) {
+    note.hidden = false; note.textContent = '시작연도는 종료연도보다 클 수 없습니다.';
+    return;
+  }
+
+  const years = [];
+  for (let y = startYear; y <= endYear; y++) years.push(y);
+
+  if (name) {
+    renderYearChangeSchoolDetail(container, note, years, region, level, name);
+    return;
+  }
+  if (level) {
+    renderYearChangeFiltered(container, years, region, level);
+    return;
+  }
+  renderYearChangeMultiLevel(container, years, region);
+}
+
+/* years.length <= 3 -> 'card' (2개씩 나란히, chart-grid의 auto-fit 배치 활용), 그 외 -> 'card wide' (1개씩 전체 너비) */
+function ycCardClass(years){
+  return years.length <= 3 ? 'card' : 'card wide';
+}
+
+/* 다각형(레이더) 그래프에서 연도별 선(폴리곤) 색상은 서로 뚜렷이 구분되도록 대비가 큰 색상만 모아서 사용한다. */
+const RADAR_YEAR_COLORS = ['#dc2626','#2563eb','#16a34a','#f59e0b','#7c3aed','#0891b2','#db2777','#65a30d','#4338ca','#b45309'];
+
+/* 다각형(레이더) 그래프는 축이 3개 이상이어야 의미가 있으므로, 축을 연도가 아니라 비교 항목(초,중,고 또는 초1~고3 등 시리즈)으로 삼는다.
+   즉 시리즈(초/중/고 또는 학년)가 각각 축이 되고, 선택된 연도별로 폴리곤 하나씩 그려진다. */
+function transposeToRadarSeries(yearLabels, series){
+  const radarCategories = series.map(s=>s.name);
+  const radarSeries = yearLabels.map((yLabel, yi) => ({
+    name: yLabel,
+    color: RADAR_YEAR_COLORS[yi % RADAR_YEAR_COLORS.length],
+    data: series.map(s => s.data[yi] || 0),
+    unit: series[0] ? (series[0].unit || '') : ''
+  }));
+  return {categories: radarCategories, series: radarSeries};
+}
+
+/* eligibleForRadar: 초,중,고 또는 초1~고3까지처럼 비교 항목(축이 될 시리즈)이 3개 이상인 차트에만 적용.
+   관리자 설정이 '선그래프'가 아니면 다각형 그래프를 기본으로 사용 */
+function appendYcLineCard(container, cardClass, title, subLabel, yearLabels, series, filename, id, eligibleForRadar){
+  const useRadar = eligibleForRadar && series.length >= 3 && SETTINGS.yearChangeChartType !== 'line';
+  const card = document.createElement('div'); card.className = cardClass;
+  card.innerHTML = `<h2>${title}</h2><p class="sub">${subLabel}</p><div class="chart-wrap" id="${id}"></div>`;
+  container.appendChild(card);
+  if (useRadar) {
+    const t = transposeToRadarSeries(yearLabels, series);
+    renderChart(document.getElementById(id), {type:'radar', categories:t.categories, series:t.series, filename, showLabels:true});
+  } else {
+    renderChart(document.getElementById(id), {type:'line', categories:yearLabels, series, filename, showLabels:true});
+  }
+}
+
+function renderYearChangeMultiLevel(container, years, region){
+  const label = region ? shortRegion(region) : '전체';
+  const yearLabels = years.map(y=>`${y}년`);
+  const subLabel = `${years[0]}년~${years[years.length-1]}년`;
+  const cardClass = ycCardClass(years);
+  const levelOrder = ['초','중','고'];
+  const levelColors = {'초':PALETTE[2], '중':PALETTE[0], '고':PALETTE[3]};
+  const poolOf = (y, lv) => SCHOOLS.filter(s => s.year===y && s.level===lv && (!region || s.region===region));
+
+  const hasAnyData = years.some(y => levelOrder.some(lv => poolOf(y, lv).length > 0));
+  if (!hasAnyData) {
+    const note = document.createElement('div'); note.className='card wide';
+    note.innerHTML = `<p class="empty">${label} 조건에 해당하는 자료가 없습니다.</p>`;
+    container.appendChild(note);
+    return;
+  }
+
+  const schoolSeries = levelOrder.map(lv=>({name:LEVEL_NAMES[lv], color:levelColors[lv], data: years.map(y=>poolOf(y,lv).length), unit:'개교'}));
+  appendYcLineCard(container, cardClass, `${label}-초,중,고 학교 수 변화`, subLabel, yearLabels, schoolSeries, `${label}_초중고_연도별_학교수_변화`, 'yc-m-schools', true);
+
+  const classSeries = levelOrder.map(lv=>({name:LEVEL_NAMES[lv], color:levelColors[lv], data: years.map(y=>poolOf(y,lv).reduce((a,s)=>a+s.classes.total,0)), unit:'개'}));
+  appendYcLineCard(container, cardClass, `${label}-초,중,고 학급 수 변화`, subLabel, yearLabels, classSeries, `${label}_초중고_연도별_학급수_변화`, 'yc-m-classes', true);
+
+  const studentSeries = levelOrder.map(lv=>({name:LEVEL_NAMES[lv], color:levelColors[lv], data: years.map(y=>poolOf(y,lv).reduce((a,s)=>a+s.students.total,0)), unit:'명'}));
+  appendYcLineCard(container, cardClass, `${label}-초,중,고 학생 수 변화`, subLabel, yearLabels, studentSeries, `${label}_초중고_연도별_학생수_변화`, 'yc-m-students', true);
+
+  const gradeSeries = [];
+  levelOrder.forEach(lv=>{
+    for (let g=1; g<=GRADE_COUNT[lv]; g++){
+      gradeSeries.push({
+        name: `${LEVEL_NAMES[lv][0]}${g}`,
+        color: PALETTE[gradeSeries.length % PALETTE.length],
+        data: years.map(y => poolOf(y, lv).reduce((a,s)=>a+(s.students['g'+g]||0),0)),
+        unit: '명'
+      });
+    }
+  });
+  appendYcLineCard(container, cardClass, `${label} 초1~고3까지 학생 수 변화`, subLabel, yearLabels, gradeSeries, `${label}_초1고3_연도별_학생수_변화`, 'yc-m-grades', true);
+}
+
+function renderYearChangeFiltered(container, years, region, level){
+  const regionLabel = region ? shortRegion(region) : '전체';
+  const levelLabel = LEVEL_NAMES[level];
+  const label = `${regionLabel} · ${levelLabel}`;
+  const yearLabels = years.map(y=>`${y}년`);
+  const subLabel = `${years[0]}년~${years[years.length-1]}년`;
+  const cardClass = ycCardClass(years);
+  const poolOf = y => SCHOOLS.filter(s => s.year===y && s.level===level && (!region || s.region===region));
+  const schoolCounts = years.map(y=>poolOf(y).length);
+  const classCounts = years.map(y=>poolOf(y).reduce((a,s)=>a+s.classes.total,0));
+  const studentCounts = years.map(y=>poolOf(y).reduce((a,s)=>a+s.students.total,0));
+
+  if (!schoolCounts.some(v=>v>0)) {
+    const note = document.createElement('div'); note.className='card wide';
+    note.innerHTML = `<p class="empty">${label} 조건에 해당하는 자료가 없습니다.</p>`;
+    container.appendChild(note);
+    return;
+  }
+
+  appendYcLineCard(container, cardClass, `${label} 학교 수 변화`, subLabel, yearLabels, [{name:'학교수', color:PALETTE[0], data:schoolCounts, unit:'개교'}], `${regionLabel}_${levelLabel}_연도별_학교수_변화`, 'yc-f-chart-schools');
+  appendYcLineCard(container, cardClass, `${label} 학급 수 변화`, subLabel, yearLabels, [{name:'학급수', color:PALETTE[1], data:classCounts, unit:'개'}], `${regionLabel}_${levelLabel}_연도별_학급수_변화`, 'yc-f-chart-classes');
+  appendYcLineCard(container, cardClass, `${label} 학생 수 변화`, subLabel, yearLabels, [{name:'학생수', color:PALETTE[3], data:studentCounts, unit:'명'}], `${regionLabel}_${levelLabel}_연도별_학생수_변화`, 'yc-f-chart-students');
+
+  const gradeCount = GRADE_COUNT[level];
+  const gradeLabels = Array.from({length:gradeCount},(_,i)=>`${i+1}학년`);
+  const gradeSeries = gradeLabels.map((lbl,i)=>({
+    name: lbl, color: PALETTE[i % PALETTE.length],
+    data: years.map(y=>poolOf(y).reduce((a,s)=>a+(s.students['g'+(i+1)]||0),0)),
+    unit: '명'
+  }));
+  appendYcLineCard(container, cardClass, `${label} 학년별 학생 수 변화`, subLabel, yearLabels, gradeSeries, `${regionLabel}_${levelLabel}_연도별_학년별_학생수_변화`, 'yc-f-chart-grades', true);
+}
+
+function renderYearChangeSchoolDetail(container, note, years, region, level, name){
+  let candidates = SCHOOLS.filter(s => s.name === name || s.name.includes(name));
+  if (region) candidates = candidates.filter(s=>s.region===region);
+  if (level) candidates = candidates.filter(s=>s.level===level);
+  if (!candidates.length) {
+    note.hidden = false; note.textContent = `"${name}"에 해당하는 학교를 찾을 수 없습니다.`;
+    return;
+  }
+  const exact = candidates.find(s=>s.name===name) || candidates[0];
+  const targetRegion = exact.region, targetName = exact.name, targetLevel = exact.level;
+  const gradeCount = GRADE_COUNT[targetLevel];
+  const yearLabels = years.map(y=>`${y}년`);
+  const subLabel = `${years[0]}년~${years[years.length-1]}년`;
+  const cardClass = ycCardClass(years);
+
+  const recordsByYear = {};
+  years.forEach(y=>{
+    recordsByYear[y] = SCHOOLS.find(s=>s.region===targetRegion && s.name===targetName && s.level===targetLevel && s.year===y) || null;
+  });
+  const missingYears = years.filter(y=>!recordsByYear[y]);
+
+  const gradeLabels = Array.from({length:gradeCount},(_,i)=>`${i+1}학년`);
+  const classSeries = gradeLabels.map((lbl,i)=>({
+    name: lbl, color: PALETTE[i % PALETTE.length],
+    data: years.map(y=> recordsByYear[y] ? (recordsByYear[y].classes['g'+(i+1)]||0) : 0),
+    unit: '개'
+  }));
+  const studentSeries = gradeLabels.map((lbl,i)=>({
+    name: lbl, color: PALETTE[i % PALETTE.length],
+    data: years.map(y=> recordsByYear[y] ? (recordsByYear[y].students['g'+(i+1)]||0) : 0),
+    unit: '명'
+  }));
+
+  const headCard = document.createElement('div'); headCard.className='card wide';
+  headCard.innerHTML = `<h2>${targetName}</h2><p class="sub">${shortRegion(targetRegion)} · ${LEVEL_NAMES[targetLevel]} · ${subLabel} 학년별 변화</p>` +
+    (missingYears.length ? `<p class="empty" style="margin:6px 0 0;">${missingYears.join(', ')}년 자료가 없어 0으로 표시됩니다.</p>` : '');
+  container.appendChild(headCard);
+
+  appendYcLineCard(container, cardClass, `${targetName} 학년별 학급수 변화`, subLabel, yearLabels, classSeries, `${targetName}_연도별_학년별_학급수_변화`, 'yc-s-chart-classes');
+  appendYcLineCard(container, cardClass, `${targetName} 학년별 학생수 변화`, subLabel, yearLabels, studentSeries, `${targetName}_연도별_학년별_학생수_변화`, 'yc-s-chart-students');
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    if (btn.dataset.view === 'level') {
+      document.getElementById('view-level').classList.add('active');
+      renderLevelView(btn.dataset.level);
+    } else if (btn.dataset.view === 'yearchange') {
+      document.getElementById('view-yearchange').classList.add('active');
+      initYearChangeView();
+      populateYearChangeYearOptions();
+      doYearChangeSearch();
+    } else {
+      document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    }
+  });
+});
+
+document.getElementById('btn-search').addEventListener('click', doSearch);
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  document.getElementById('f-region').value = '';
+  document.getElementById('f-level').value = '';
+  document.getElementById('f-name').value = '';
+  populateYearOptions();
+  document.getElementById('f-year').value = String(new Date().getFullYear());
+  populateDatalist();
+  doSearch();
+});
+
+async function loadBaseSchools(){
+  if (window.__EMBEDDED_SCHOOLS__) return window.__EMBEDDED_SCHOOLS__;
+  const res = await fetch('data.json', {cache:'no-store'});
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return await res.json();
+}
+
+window.addEventListener('DOMContentLoaded', async ()=>{
+  try {
+    BASE_SCHOOLS = await loadBaseSchools();
+  } catch(e) {
+    document.querySelector('main').innerHTML = '<div class="note" style="border-color:#dc2626;background:#fef2f2;color:#991b1b;">데이터 파일(data.json)을 불러오지 못했습니다. index.html과 data.json이 같은 폴더에 있는지, 웹서버(http/https)로 열었는지 확인해 주세요. (file://로 직접 열면 브라우저 보안 정책 때문에 fetch가 차단됩니다)<br><small>' + e.message + '</small></div>';
+    return;
+  }
+  SCHOOLS = loadSchools();
+  populateFilters();
+  doSearch();
+  initLevelView();
+  renderLevelView('고');
+  initAdmin();
+});
+</script>
+</body>
+</html>

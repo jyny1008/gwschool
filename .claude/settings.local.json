@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk '{ print length, NR }' /Users/hanro/jyny_ai/school_dashboard_web/school_dashboard.html)",
+      "Bash(python3 -)",
+      "Bash(awk 'NR==228 {print \"let BASE_SCHOOLS = window.__EMBEDDED_SCHOOLS__ || null;\"; next} {print}' school_dashboard.html)",
+      "Bash(node --check /tmp/_check.js)",
+      "Bash(find ~/Downloads -maxdepth 1 -newer /Users/hanro/jyny_ai/school_dashboard_web/index.html -iname \"*.json\" -o -newer /Users/hanro/jyny_ai/school_dashboard_web/index.html -iname \"*오프라인*\" 2>/dev/null | head -20)",
+      "Bash(python3 -c \"import json; d=json.load\\(open\\('data.json',encoding='utf-8'\\)\\); print\\('valid, records:', len\\(d\\)\\)\")",
+      "Read(//Users/hanro/jyny_ai/**)",
+      "Read(//Users/hanro/**)",
+      "Bash(python3 -c \"import openpyxl\")",
+      "Bash(python3 -c \"import pandas\")",
+      "Bash(cp data.json /tmp/data.json.pre-neis-backup)",
+      "Bash(python3 scripts/build_data.py)",
+      "Bash(python3 -c \"import json; d=json.load\\(open\\('data.json',encoding='utf-8'\\)\\); print\\('records:', len\\(d\\)\\)\")"
+    ]
+  }
+}
