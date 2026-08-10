@@ -259,12 +259,12 @@ function saveSchools(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(lis
 let SCHOOLS = [];
 
 function loadSettings(){
-  const def = {chartType:'bar', sections:{region:true, grade:true}, chartTypes:{homeRegion:'line', homeGrade:'bar', homeRank:'bar'}, extraYears:[], defaultYear:null, yearChangeChartType:'radar', gradeChangeChartType:'stackedBar'};
+  const def = {chartType:'bar', sections:{region:true, grade:true}, chartTypes:{homeRegion:'line', homeGrade:'bar', homeRank:'bar'}, extraYears:[], defaultYear:null, ycChartTypes:{schools:'stackedBar', classes:'stackedBar', students:'stackedBar', grades:'stackedBar'}};
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return Object.assign(def, parsed, {chartTypes: Object.assign({}, def.chartTypes, parsed.chartTypes), extraYears: parsed.extraYears || []});
+      return Object.assign(def, parsed, {chartTypes: Object.assign({}, def.chartTypes, parsed.chartTypes), ycChartTypes: Object.assign({}, def.ycChartTypes, parsed.ycChartTypes), extraYears: parsed.extraYears || []});
     }
   } catch(e) {}
   return def;
@@ -2154,21 +2154,20 @@ function renderAdminPanel(){
             <option value="pie" ${SETTINGS.chartType==='pie'?'selected':''}>원그래프 (단일 항목만 적용)</option>
           </select>
         </div>
+        ${[
+          ['schools', '연도별 변화 - 학교 수 변화'],
+          ['classes', '연도별 변화 - 학급 수 변화'],
+          ['students', '연도별 변화 - 학생 수 변화'],
+          ['grades', '연도별 변화 - 학년별(초1~고3) 학생 수 변화']
+        ].map(([key, label])=>`
         <div class="filter-item">
-          <label for="opt-chart-type-yearchange">연도별 변화 (초·중·고 학교/학급/학생수 비교 그래프)</label>
-          <select id="opt-chart-type-yearchange">
-            <option value="radar" ${SETTINGS.yearChangeChartType!=='line'?'selected':''}>다각형 그래프 (기본값)</option>
-            <option value="line" ${SETTINGS.yearChangeChartType==='line'?'selected':''}>선그래프</option>
+          <label for="opt-yc-${key}">${label}</label>
+          <select id="opt-yc-${key}">
+            <option value="stackedBar" ${SETTINGS.ycChartTypes[key]!=='radar' && SETTINGS.ycChartTypes[key]!=='line' ? 'selected':''}>누적 막대그래프 (기본값)</option>
+            <option value="radar" ${SETTINGS.ycChartTypes[key]==='radar'?'selected':''}>다각형 그래프</option>
+            <option value="line" ${SETTINGS.ycChartTypes[key]==='line'?'selected':''}>선그래프</option>
           </select>
-        </div>
-        <div class="filter-item">
-          <label for="opt-chart-type-yearchange-grade">연도별 변화 (학년별 · 초1~고3 학생 수 변화 그래프)</label>
-          <select id="opt-chart-type-yearchange-grade">
-            <option value="stackedBar" ${SETTINGS.gradeChangeChartType!=='radar' && SETTINGS.gradeChangeChartType!=='line' ? 'selected':''}>누적 막대그래프 (기본값)</option>
-            <option value="radar" ${SETTINGS.gradeChangeChartType==='radar'?'selected':''}>다각형 그래프</option>
-            <option value="line" ${SETTINGS.gradeChangeChartType==='line'?'selected':''}>선그래프</option>
-          </select>
-        </div>
+        </div>`).join('')}
       </div>
     </div>
     <div class="card">
@@ -2275,15 +2274,12 @@ function renderAdminPanel(){
   document.getElementById('opt-sec-region').addEventListener('change', e=>{ SETTINGS.sections.region=e.target.checked; saveSettings(SETTINGS); toggleSectionVisibility(); });
   document.getElementById('opt-sec-grade').addEventListener('change', e=>{ SETTINGS.sections.grade=e.target.checked; saveSettings(SETTINGS); toggleSectionVisibility(); });
   document.getElementById('opt-chart-type').addEventListener('change', e=>{ SETTINGS.chartType=e.target.value; saveSettings(SETTINGS); doSearch(); });
-  document.getElementById('opt-chart-type-yearchange').addEventListener('change', e=>{
-    SETTINGS.yearChangeChartType = e.target.value;
-    saveSettings(SETTINGS);
-    if (YEARCHANGE_INIT) doYearChangeSearch();
-  });
-  document.getElementById('opt-chart-type-yearchange-grade').addEventListener('change', e=>{
-    SETTINGS.gradeChangeChartType = e.target.value;
-    saveSettings(SETTINGS);
-    if (YEARCHANGE_INIT) doYearChangeSearch();
+  ['schools','classes','students','grades'].forEach(key=>{
+    document.getElementById(`opt-yc-${key}`).addEventListener('change', e=>{
+      SETTINGS.ycChartTypes[key] = e.target.value;
+      saveSettings(SETTINGS);
+      if (YEARCHANGE_INIT) doYearChangeSearch();
+    });
   });
   ['homeRegion','homeGrade','homeRank'].forEach(key=>{
     document.getElementById(`opt-chart-type-${key}`).addEventListener('change', e=>{
@@ -2709,33 +2705,42 @@ function transposeToRadarSeries(yearLabels, series){
   return {categories: radarCategories, series: radarSeries};
 }
 
-/* eligibleForRadar: 초,중,고 또는 초1~고3까지처럼 비교 항목(축이 될 시리즈)이 3개 이상인 차트에만 적용.
-   관리자 설정이 '선그래프'가 아니면 다각형 그래프를 기본으로 사용 */
-function appendYcLineCard(container, cardClass, title, subLabel, yearLabels, series, filename, id, eligibleForRadar){
-  const useRadar = eligibleForRadar && series.length >= 3 && SETTINGS.yearChangeChartType !== 'line';
+/* 연도별 변화 탭의 카드 하나를 그린다. itemKey(schools/classes/students/grades)별로 관리자 설정
+   (SETTINGS.ycChartTypes, 기본값 누적 막대그래프)에 따라 누적 막대그래프 / 다각형 그래프 / 선그래프 중 하나로 그린다.
+   지역·학교급 필터가 바뀌어도 doYearChangeSearch를 통해 다시 호출되므로 설정이 항상 반영된다. */
+function appendYcChart(container, cardClass, title, subLabel, yearLabels, series, filename, id, itemKey){
+  const chartType = (SETTINGS.ycChartTypes && SETTINGS.ycChartTypes[itemKey]) || 'stackedBar';
   const card = document.createElement('div'); card.className = cardClass;
   card.innerHTML = `<h2>${title}</h2><p class="sub">${subLabel}</p><div class="chart-wrap" id="${id}"></div>`;
   container.appendChild(card);
-  if (useRadar) {
+  const mount = document.getElementById(id);
+  if (chartType === 'radar' && series.length >= 3) {
     const t = transposeToRadarSeries(yearLabels, series);
-    renderChart(document.getElementById(id), {type:'radar', categories:t.categories, series:t.series, filename, showLabels:true});
+    renderRadar(mount, {categories:t.categories, series:t.series, showLabels:true});
+  } else if (chartType === 'line') {
+    renderLine(mount, {categories:yearLabels, series, showLabels:true});
   } else {
-    renderChart(document.getElementById(id), {type:'line', categories:yearLabels, series, filename, showLabels:true});
+    renderStackedBarYearChange(mount, {yearLabels, series, filename});
   }
+  appendChartDownloadRow(mount, filename);
 }
 
-/* 학년별(초1~고3 또는 특정 학교급의 학년별) 학생 수 변화를 연도별 누적 막대그래프로 표시.
-   막대 안에서는 series[0](가장 낮은 학년, 예: 초1)이 가장 아래, series[마지막](가장 높은 학년, 예: 고3)이 가장 위에 쌓인다.
-   막대 위에는 그 해의 전체 합계를 표시하고, 인접한 두 연도의 막대 사이는 같은 학년 구간의 경계선끼리 매우 가는 점선으로 연결해
-   구간별 흐름을 보여준다. */
+/* Nord(Northern-themed) 색상 팔레트: 연도별 변화 누적 막대그래프 구간 색상 전용으로 사용한다. */
+const NORD_PALETTE = ['#BF616A','#D08770','#EBCB8B','#A3BE8C','#8FBCBB','#88C0D0','#81A1C1','#5E81AC','#B48EAD'];
+
+/* 연도별 변화를 누적 막대그래프로 표시. 막대 안에서는 series[0]이 가장 아래, series[마지막]이 가장 위에 쌓인다.
+   막대 위에는 그 해의 전체 합계를 표시하고, 인접한 두 연도의 막대 사이는 같은 구간의 경계선끼리 매우 가는 점선으로
+   연결해 구간별 흐름을 보여준다. 가장 왼쪽(가장 오래된 연도) 막대에는 각 구간의 이름을 왼쪽에 표시한다.
+   구간 색상은 Nord 팔레트를 사용한다(전달된 series의 color는 다각형/선그래프용이므로 여기서는 덮어쓴다). */
 function renderStackedBarYearChange(container, {yearLabels, series, filename}){
   container.innerHTML = '';
   const n = yearLabels.length || 1;
+  const cs = series.map((s,i)=>Object.assign({}, s, {color: NORD_PALETTE[i % NORD_PALETTE.length]}));
   const W = Math.max(560, n * 110);
   const H = 340;
-  const marginL = 60, marginR = 20, marginT = 34, marginB = 42;
+  const marginL = 92, marginR = 20, marginT = 34, marginB = 42;
   const plotW = W - marginL - marginR, plotH = H - marginT - marginB;
-  const totals = yearLabels.map((_, yi) => series.reduce((a,s)=>a+(s.data[yi]||0), 0));
+  const totals = yearLabels.map((_, yi) => cs.reduce((a,s)=>a+(s.data[yi]||0), 0));
   const maxVal = Math.max(1, ...totals) * 1.15;
   const svg = el('svg', {viewBox:`0 0 ${W} ${H}`, width:'100%', preserveAspectRatio:'xMidYMid meet'});
   svg.classList.add('chart-svg');
@@ -2762,7 +2767,7 @@ function renderStackedBarYearChange(container, {yearLabels, series, filename}){
     const bx = gx - barW/2;
     let acc = 0;
     const yBounds = [marginT + plotH];
-    series.forEach(s => {
+    cs.forEach(s => {
       const v = s.data[yi] || 0;
       const segH = (v/maxVal)*plotH;
       const y1 = (marginT + plotH) - (acc/maxVal)*plotH - segH;
@@ -2784,13 +2789,35 @@ function renderStackedBarYearChange(container, {yearLabels, series, filename}){
     const gx1 = barCenters[yi] + barW/2;
     const gx2 = barCenters[yi+1] - barW/2;
     for (let bi=1; bi<boundaries[yi].length; bi++){
-      const color = series[bi-1] ? series[bi-1].color : '#9ca3af';
+      const color = cs[bi-1] ? cs[bi-1].color : '#9ca3af';
       svg.appendChild(el('line', {
         x1:gx1, y1:boundaries[yi][bi], x2:gx2, y2:boundaries[yi+1][bi],
         stroke:color, 'stroke-width':0.75, 'stroke-dasharray':'1.5,2.5', 'stroke-opacity':0.7
       }));
     }
   }
+
+  const bx0 = barCenters[0] - barW/2;
+  const leftBounds = boundaries[0];
+  const labelDescs = cs.map((s, i) => {
+    const cy = (leftBounds[i] + leftBounds[i+1]) / 2;
+    const text = s.name;
+    return {
+      anchorX: bx0, anchorY: cy,
+      initX: bx0 - 8, initY: cy,
+      x: bx0 - 8, y: cy,
+      w: Math.max(20, String(text).length*6.6+6), h: 15,
+      text, color: s.color
+    };
+  });
+  resolveLabelCollisions(labelDescs);
+  labelDescs.forEach(ld=>{
+    const displaced = Math.hypot(ld.x-ld.initX, ld.y-ld.initY) > 2.5;
+    if (displaced) svg.appendChild(el('line', {x1:ld.anchorX, y1:ld.anchorY, x2:ld.x+4, y2:ld.y, stroke:ld.color, 'stroke-width':1, 'stroke-opacity':0.55}));
+    const lbl = el('text', {x:ld.x, y:ld.y+4, 'text-anchor':'end', class:'bar-value', style:`fill:${ld.color};`});
+    lbl.textContent = ld.text;
+    svg.appendChild(lbl);
+  });
 
   yearLabels.forEach((yLabel, yi) => {
     const t = el('text',{x:barCenters[yi], y:marginT+plotH+18, 'text-anchor':'middle', class:'x-label'});
@@ -2799,27 +2826,7 @@ function renderStackedBarYearChange(container, {yearLabels, series, filename}){
   });
 
   container.appendChild(svg);
-  container.appendChild(buildLegend(series));
-}
-
-/* 학년별(초1~고3) 학생 수 변화 전용 카드: 관리자 설정(SETTINGS.gradeChangeChartType, 기본값 누적 막대그래프)에 따라
-   누적 막대그래프 / 다각형 그래프 / 선그래프 중 하나로 그린다. 지역·학교급 필터가 바뀌어도 doYearChangeSearch를 통해
-   다시 호출되므로 설정이 항상 반영된다. */
-function appendYcGradeChart(container, cardClass, title, subLabel, yearLabels, series, filename, id){
-  const chartType = SETTINGS.gradeChangeChartType || 'stackedBar';
-  const card = document.createElement('div'); card.className = cardClass;
-  card.innerHTML = `<h2>${title}</h2><p class="sub">${subLabel}</p><div class="chart-wrap" id="${id}"></div>`;
-  container.appendChild(card);
-  const mount = document.getElementById(id);
-  if (chartType === 'radar' && series.length >= 3) {
-    const t = transposeToRadarSeries(yearLabels, series);
-    renderRadar(mount, {categories:t.categories, series:t.series, showLabels:true});
-  } else if (chartType === 'line') {
-    renderLine(mount, {categories:yearLabels, series, showLabels:true});
-  } else {
-    renderStackedBarYearChange(mount, {yearLabels, series, filename});
-  }
-  appendChartDownloadRow(mount, filename);
+  container.appendChild(buildLegend(cs));
 }
 
 function renderYearChangeMultiLevel(container, years, region){
@@ -2840,13 +2847,13 @@ function renderYearChangeMultiLevel(container, years, region){
   }
 
   const schoolSeries = levelOrder.map(lv=>({name:LEVEL_NAMES[lv], color:levelColors[lv], data: years.map(y=>poolOf(y,lv).length), unit:'개교'}));
-  appendYcLineCard(container, cardClass, `${label}-초,중,고 학교 수 변화`, subLabel, yearLabels, schoolSeries, `${label}_초중고_연도별_학교수_변화`, 'yc-m-schools', true);
+  appendYcChart(container, cardClass, `${label}-초,중,고 학교 수 변화`, subLabel, yearLabels, schoolSeries, `${label}_초중고_연도별_학교수_변화`, 'yc-m-schools', 'schools');
 
   const classSeries = levelOrder.map(lv=>({name:LEVEL_NAMES[lv], color:levelColors[lv], data: years.map(y=>poolOf(y,lv).reduce((a,s)=>a+s.classes.total,0)), unit:'개'}));
-  appendYcLineCard(container, cardClass, `${label}-초,중,고 학급 수 변화`, subLabel, yearLabels, classSeries, `${label}_초중고_연도별_학급수_변화`, 'yc-m-classes', true);
+  appendYcChart(container, cardClass, `${label}-초,중,고 학급 수 변화`, subLabel, yearLabels, classSeries, `${label}_초중고_연도별_학급수_변화`, 'yc-m-classes', 'classes');
 
   const studentSeries = levelOrder.map(lv=>({name:LEVEL_NAMES[lv], color:levelColors[lv], data: years.map(y=>poolOf(y,lv).reduce((a,s)=>a+s.students.total,0)), unit:'명'}));
-  appendYcLineCard(container, cardClass, `${label}-초,중,고 학생 수 변화`, subLabel, yearLabels, studentSeries, `${label}_초중고_연도별_학생수_변화`, 'yc-m-students', true);
+  appendYcChart(container, cardClass, `${label}-초,중,고 학생 수 변화`, subLabel, yearLabels, studentSeries, `${label}_초중고_연도별_학생수_변화`, 'yc-m-students', 'students');
 
   const gradeSeries = [];
   levelOrder.forEach(lv=>{
@@ -2859,7 +2866,7 @@ function renderYearChangeMultiLevel(container, years, region){
       });
     }
   });
-  appendYcGradeChart(container, cardClass, `${label} 초1~고3까지 학생 수 변화`, subLabel, yearLabels, gradeSeries, `${label}_초1고3_연도별_학생수_변화`, 'yc-m-grades');
+  appendYcChart(container, cardClass, `${label} 초1~고3까지 학생 수 변화`, subLabel, yearLabels, gradeSeries, `${label}_초1고3_연도별_학생수_변화`, 'yc-m-grades', 'grades');
 }
 
 function renderYearChangeFiltered(container, years, region, level){
@@ -2881,9 +2888,9 @@ function renderYearChangeFiltered(container, years, region, level){
     return;
   }
 
-  appendYcLineCard(container, cardClass, `${label} 학교 수 변화`, subLabel, yearLabels, [{name:'학교수', color:PALETTE[0], data:schoolCounts, unit:'개교'}], `${regionLabel}_${levelLabel}_연도별_학교수_변화`, 'yc-f-chart-schools');
-  appendYcLineCard(container, cardClass, `${label} 학급 수 변화`, subLabel, yearLabels, [{name:'학급수', color:PALETTE[1], data:classCounts, unit:'개'}], `${regionLabel}_${levelLabel}_연도별_학급수_변화`, 'yc-f-chart-classes');
-  appendYcLineCard(container, cardClass, `${label} 학생 수 변화`, subLabel, yearLabels, [{name:'학생수', color:PALETTE[3], data:studentCounts, unit:'명'}], `${regionLabel}_${levelLabel}_연도별_학생수_변화`, 'yc-f-chart-students');
+  appendYcChart(container, cardClass, `${label} 학교 수 변화`, subLabel, yearLabels, [{name:'학교수', color:PALETTE[0], data:schoolCounts, unit:'개교'}], `${regionLabel}_${levelLabel}_연도별_학교수_변화`, 'yc-f-chart-schools', 'schools');
+  appendYcChart(container, cardClass, `${label} 학급 수 변화`, subLabel, yearLabels, [{name:'학급수', color:PALETTE[1], data:classCounts, unit:'개'}], `${regionLabel}_${levelLabel}_연도별_학급수_변화`, 'yc-f-chart-classes', 'classes');
+  appendYcChart(container, cardClass, `${label} 학생 수 변화`, subLabel, yearLabels, [{name:'학생수', color:PALETTE[3], data:studentCounts, unit:'명'}], `${regionLabel}_${levelLabel}_연도별_학생수_변화`, 'yc-f-chart-students', 'students');
 
   const gradeCount = GRADE_COUNT[level];
   const gradeLabels = Array.from({length:gradeCount},(_,i)=>`${i+1}학년`);
@@ -2892,7 +2899,7 @@ function renderYearChangeFiltered(container, years, region, level){
     data: years.map(y=>poolOf(y).reduce((a,s)=>a+(s.students['g'+(i+1)]||0),0)),
     unit: '명'
   }));
-  appendYcGradeChart(container, cardClass, `${label} 학년별 학생 수 변화`, subLabel, yearLabels, gradeSeries, `${regionLabel}_${levelLabel}_연도별_학년별_학생수_변화`, 'yc-f-chart-grades');
+  appendYcChart(container, cardClass, `${label} 학년별 학생 수 변화`, subLabel, yearLabels, gradeSeries, `${regionLabel}_${levelLabel}_연도별_학년별_학생수_변화`, 'yc-f-chart-grades', 'grades');
 }
 
 function renderYearChangeSchoolDetail(container, note, years, region, level, name){
@@ -2933,8 +2940,8 @@ function renderYearChangeSchoolDetail(container, note, years, region, level, nam
     (missingYears.length ? `<p class="empty" style="margin:6px 0 0;">${missingYears.join(', ')}년 자료가 없어 0으로 표시됩니다.</p>` : '');
   container.appendChild(headCard);
 
-  appendYcLineCard(container, cardClass, `${targetName} 학년별 학급수 변화`, subLabel, yearLabels, classSeries, `${targetName}_연도별_학년별_학급수_변화`, 'yc-s-chart-classes');
-  appendYcLineCard(container, cardClass, `${targetName} 학년별 학생수 변화`, subLabel, yearLabels, studentSeries, `${targetName}_연도별_학년별_학생수_변화`, 'yc-s-chart-students');
+  appendYcChart(container, cardClass, `${targetName} 학년별 학급수 변화`, subLabel, yearLabels, classSeries, `${targetName}_연도별_학년별_학급수_변화`, 'yc-s-chart-classes', 'grades');
+  appendYcChart(container, cardClass, `${targetName} 학년별 학생수 변화`, subLabel, yearLabels, studentSeries, `${targetName}_연도별_학년별_학생수_변화`, 'yc-s-chart-students', 'grades');
 }
 
 /* ---------- tabs ---------- */
