@@ -32,6 +32,7 @@ select,input{padding:8px 10px;border:1px solid var(--border);border-radius:8px;f
 .btn.primary:hover{background:var(--primary-dark);}
 .btn.danger{color:var(--danger);border-color:#fecaca;}
 .btn.small{padding:4px 10px;font-size:12px;}
+.school-name-btn{width:100%;height:34px;padding:2px 6px;white-space:nowrap;overflow:hidden;display:flex;align-items:center;justify-content:center;line-height:1.2;box-sizing:border-box;}
 .chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:20px;}
 .card{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
 .card.wide{grid-column:1/-1;}
@@ -51,6 +52,8 @@ select,input{padding:8px 10px;border:1px solid var(--border);border-radius:8px;f
 .point:hover{filter:brightness(0.75) saturate(1.3);}
 .pie-slice{cursor:pointer;stroke:#fff;stroke-width:1;transition:filter .12s;}
 .pie-slice:hover{filter:brightness(0.85) saturate(1.3);}
+.donut-slice{cursor:pointer;transition:filter .12s;}
+.donut-slice:hover{filter:brightness(0.85) saturate(1.3);}
 .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-size:12px;color:var(--sub);}
 .legend-item{display:flex;align-items:center;gap:6px;}
 .legend-item i{width:10px;height:10px;border-radius:2px;display:inline-block;}
@@ -91,6 +94,7 @@ th{background:#f9fafb;position:sticky;top:0;}
     <button class="tab-btn" data-view="level" data-level="중">중학교</button>
     <button class="tab-btn" data-view="level" data-level="고">고등학교</button>
     <button class="tab-btn" data-view="yearchange">연도별 변화</button>
+    <button class="tab-btn" data-view="topics">주제별 DATA</button>
   </nav>
   <button class="tab-btn admin-link-btn" data-view="admin">관리자</button>
 </header>
@@ -138,34 +142,44 @@ th{background:#f9fafb;position:sticky;top:0;}
      <div class="card">
        <h2 id="level-title">고등학교 현황</h2>
        <p class="sub" id="level-sub"></p>
-       <div class="filter-item" style="max-width:200px;margin-bottom:12px;">
-         <label for="level-year">기준연도</label>
-         <select id="level-year"></select>
-       </div>
-
-       <h2 style="margin:0 0 4px;font-size:16px;">요약</h2>
-       <p id="level-overall-summary" class="type-summary" style="margin:0 0 20px;"></p>
-
-       <h3 style="margin:0 0 4px;font-size:15px;">시군별 학교 수</h3>
-       <div class="chart-wrap" id="level-chart-region"></div>
-
-       <h3 style="margin:16px 0 4px;font-size:15px;">시군별 학생수</h3>
-       <div class="chart-wrap" id="level-chart-region-students"></div>
-
-       <div id="type-checks" class="check-row"></div>
-       <div class="type-toolbar">
-         <p id="type-summary" class="type-summary"></p>
-         <div class="type-download-btns">
-           <button id="btn-download-csv" class="btn">CSV 다운로드</button>
-           <button id="btn-download-xls" class="btn">엑셀 다운로드</button>
+       <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px;">
+         <div class="filter-item" style="max-width:200px;">
+           <label for="level-year">기준연도</label>
+           <select id="level-year"></select>
+         </div>
+         <div class="filter-item" style="max-width:200px;">
+           <label for="level-region">지역</label>
+           <select id="level-region"><option value="">전체</option></select>
          </div>
        </div>
-       <div class="table-wrap tall">
-         <table id="type-table">
-           <thead id="type-table-head"></thead>
-           <tbody></tbody>
-         </table>
+
+       <div id="level-allregion-block">
+         <h2 style="margin:0 0 4px;font-size:16px;">요약</h2>
+         <p id="level-overall-summary" class="type-summary" style="margin:0 0 20px;"></p>
+
+         <h3 style="margin:0 0 4px;font-size:15px;">시군별 학교 수</h3>
+         <div class="chart-wrap" id="level-chart-region"></div>
+
+         <h3 style="margin:16px 0 4px;font-size:15px;">시군별 학생수</h3>
+         <div class="chart-wrap" id="level-chart-region-students"></div>
+
+         <div id="type-checks" class="check-row"></div>
+         <div class="type-toolbar">
+           <p id="type-summary" class="type-summary"></p>
+           <div class="type-download-btns">
+             <button id="btn-download-csv" class="btn">CSV 다운로드</button>
+             <button id="btn-download-xls" class="btn">엑셀 다운로드</button>
+           </div>
+         </div>
+         <div class="table-wrap tall">
+           <table id="type-table">
+             <thead id="type-table-head"></thead>
+             <tbody></tbody>
+           </table>
+         </div>
        </div>
+
+       <div id="level-region-block" class="chart-grid" hidden></div>
      </div>
   </section>
 
@@ -208,6 +222,44 @@ th{background:#f9fafb;position:sticky;top:0;}
     <div id="yc-note" class="note" hidden></div>
 
     <div id="yc-results" class="chart-grid"></div>
+  </section>
+
+  <section id="view-topics" class="view">
+    <div class="filter-bar">
+      <div class="filter-item">
+        <label for="tp-start-year">시작연도</label>
+        <select id="tp-start-year"></select>
+      </div>
+      <div class="filter-item">
+        <label for="tp-end-year">종료연도</label>
+        <select id="tp-end-year"></select>
+      </div>
+      <div class="filter-item">
+        <label>&nbsp;</label>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-tp-search" class="btn primary">조회</button>
+          <button id="btn-tp-reset" class="btn">초기화</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card wide" style="margin-bottom:20px;">
+      <div class="type-toolbar" style="margin-bottom:8px;">
+        <div>
+          <h2 style="margin:0 0 4px;font-size:15px;">주제 선택</h2>
+          <p class="sub" style="margin:0;">표시할 주제를 선택하세요.</p>
+        </div>
+        <div class="type-download-btns">
+          <button id="btn-tp-topic-select-all" class="btn small">전체 선택</button>
+          <button id="btn-tp-topic-select-none" class="btn small">전체 해제</button>
+        </div>
+      </div>
+      <div id="tp-topic-select" class="check-row"></div>
+    </div>
+
+    <div id="tp-note" class="note" hidden></div>
+
+    <div id="tp-results" class="chart-grid"></div>
   </section>
 
   <section id="view-admin" class="view">
@@ -376,7 +428,59 @@ function renderBar(container, {categories, series, categoryWidth}){
   if (series.length > 1) container.appendChild(buildLegend(series));
 }
 
+/* 0을 기준선으로 양수는 위, 음수는 아래로 뻗는 막대그래프. 증감률처럼 음수가 나올 수 있는 단일 지표에 사용한다. */
+function renderDivergingBar(container, {categories, data, unit, positiveColor, negativeColor}){
+  container.innerHTML = '';
+  const n = categories.length || 1;
+  const W = Math.max(560, n * 50);
+  const H = 320;
+  const longLabels = categories.some(c => String(c).length > 4);
+  const marginL = 54, marginR = 20, marginT = 24, marginB = longLabels ? 66 : 42;
+  const plotW = W - marginL - marginR, plotH = H - marginT - marginB;
+  const maxAbs = Math.max(1, ...data.map(v=>Math.abs(v))) * 1.25;
+  const zeroY = marginT + plotH/2;
+  const svg = el('svg', {viewBox:`0 0 ${W} ${H}`, width:'100%', preserveAspectRatio:'xMidYMid meet'});
+  svg.classList.add('chart-svg');
+
+  const ticks = 4;
+  for (let i=-ticks/2;i<=ticks/2;i++){
+    const v = maxAbs*i/(ticks/2);
+    const y = zeroY - (v/maxAbs)*(plotH/2);
+    svg.appendChild(el('line',{x1:marginL,x2:W-marginR,y1:y,y2:y,class:'gridline'}));
+    const t = el('text',{x:marginL-8,y:y+4,'text-anchor':'end',class:'axis-label'});
+    t.textContent = (v>0?'+':'') + Math.round(v*10)/10;
+    svg.appendChild(t);
+  }
+  svg.appendChild(el('line',{x1:marginL,x2:W-marginR,y1:zeroY,y2:zeroY,class:'axis-line'}));
+
+  const groupW = plotW / n;
+  const barW = Math.min(40, groupW * 0.6);
+  categories.forEach((cat, i)=>{
+    const v = data[i] || 0;
+    const gx = marginL + i*groupW + groupW/2;
+    const bh = (Math.abs(v)/maxAbs)*(plotH/2);
+    const by = v >= 0 ? zeroY - bh : zeroY;
+    const color = v >= 0 ? positiveColor : negativeColor;
+    const rect = el('rect', {x:gx-barW/2, y:by, width:barW, height:Math.max(bh,0), fill:color, class:'bar', rx:2});
+    rect.addEventListener('mousemove',(e)=>showTooltip(e, `<strong>${cat}</strong><br>${v>0?'+':''}${v.toLocaleString()}${unit||''}`));
+    rect.addEventListener('mouseleave', hideTooltip);
+    svg.appendChild(rect);
+    const lblY = v>=0 ? by - 6 : by + bh + 14;
+    const lbl = el('text', {x:gx, y:lblY, 'text-anchor':'middle', class:'bar-value'});
+    lbl.textContent = (v>0?'+':'') + v.toLocaleString() + (unit||'');
+    svg.appendChild(lbl);
+
+    const xt = el('text',{x:gx, y:marginT+plotH+18, 'text-anchor': longLabels?'start':'middle', class:'x-label'});
+    xt.textContent = cat;
+    if (longLabels) xt.setAttribute('transform', `rotate(35 ${gx} ${marginT+plotH+18})`);
+    svg.appendChild(xt);
+  });
+
+  container.appendChild(svg);
+}
+
 function renderLine(container, {categories, series, showLabels, categoryWidth}){
+  container.innerHTML = '';
   const n = categories.length || 1;
   const W = Math.max(560, n*(categoryWidth || 70));
   const H = 300;
@@ -454,6 +558,45 @@ function renderPie(container, {categories, series}){
   categories.forEach((cat,i)=>{
     const item = document.createElement('span'); item.className='legend-item';
     item.innerHTML = `<i style="background:${PALETTE[i%PALETTE.length]}"></i>${cat}`;
+    legend.appendChild(item);
+  });
+  container.appendChild(legend);
+}
+
+/* 도넛(가운데가 뚫린 원) 그래프. 남녀 성비처럼 두 값의 비율을 강조해서 보여줄 때 사용한다. */
+function renderDonutChart(container, {categories, series}){
+  const s = series[0];
+  const total = s.data.reduce((a,b)=>a+b,0) || 1;
+  const W=380, H=300, cx=140, cy=150, r=95, strokeW=38;
+  const circumference = 2*Math.PI*r;
+  const svg = el('svg', {viewBox:`0 0 ${W} ${H}`, width:'100%', preserveAspectRatio:'xMidYMid meet'});
+  svg.classList.add('chart-svg');
+  let offsetAcc = 0;
+  categories.forEach((cat,i)=>{
+    const v = s.data[i] || 0;
+    const frac = v/total;
+    const dash = frac*circumference;
+    const circle = el('circle', {
+      cx, cy, r, fill:'none', stroke: PALETTE[i%PALETTE.length], 'stroke-width': strokeW,
+      'stroke-dasharray': `${dash} ${Math.max(circumference-dash,0)}`,
+      'stroke-dashoffset': -offsetAcc,
+      transform: `rotate(-90 ${cx} ${cy})`,
+      class: 'donut-slice'
+    });
+    circle.addEventListener('mousemove',(e)=>showTooltip(e, `<strong>${cat}</strong><br>${s.name||''}: ${v.toLocaleString()}${s.unit||''} (${(frac*100).toFixed(1)}%)`));
+    circle.addEventListener('mouseleave', hideTooltip);
+    svg.appendChild(circle);
+    offsetAcc += dash;
+  });
+  const centerText = el('text', {x:cx, y:cy, 'text-anchor':'middle', 'dominant-baseline':'middle', class:'bar-value'});
+  centerText.textContent = total.toLocaleString() + (s.unit||'');
+  svg.appendChild(centerText);
+  container.appendChild(svg);
+  const legend = document.createElement('div'); legend.className='legend';
+  categories.forEach((cat,i)=>{
+    const item = document.createElement('span'); item.className='legend-item';
+    const v = s.data[i] || 0;
+    item.innerHTML = `<i style="background:${PALETTE[i%PALETTE.length]}"></i>${cat} ${v.toLocaleString()}${s.unit||''} (${((v/total)*100).toFixed(1)}%)`;
     legend.appendChild(item);
   });
   container.appendChild(legend);
@@ -696,6 +839,71 @@ function populateDatalist(region){
   datalist.innerHTML = list.map(s=>`<option value="${s.name}"></option>`).join('');
 }
 
+/* ---------- 학교명 약어 검색 ----------
+   "춘천여자고등학교"→"춘천여고", "강원대학교사범대학부설고등학교"→"사대부고"/"사대부설고"/"강원사대부고" 처럼
+   실제 학교명을 흔히 쓰는 줄임말로 변환한 후보들을 만들어, 검색어가 원래 이름뿐 아니라 이 후보들에도
+   포함되면 같은 학교로 인식한다. */
+const ABBR_MID_RULES = [
+  ['사범대학', '사대'],
+  ['외국어', '외'],
+  ['과학영재', '과영'],
+  ['과학', '과'],
+  ['예술', '예'],
+  ['체육', '체'],
+  ['국제', '국'],
+  ['디자인', '디'],
+  ['정보통신', '정통'],
+  ['정보산업', '정산'],
+  ['생명과학', '생과'],
+  ['여자', '여'],
+  ['남자', '남'],
+];
+const ABBR_MID_OPTIONAL_RULES = [
+  ['부설', '부'],
+];
+const ABBR_TAIL_RULES = [
+  ['초등학교', '초'],
+  ['중학교', '중'],
+  ['고등학교', '고'],
+];
+const ABBR_CACHE = new Map();
+
+function schoolNameAbbreviations(fullName){
+  if (ABBR_CACHE.has(fullName)) return ABBR_CACHE.get(fullName);
+
+  let bases = [fullName];
+  ABBR_MID_RULES.forEach(([pat, rep])=>{
+    bases = bases.map(b => b.includes(pat) ? b.split(pat).join(rep) : b);
+  });
+  ABBR_MID_OPTIONAL_RULES.forEach(([pat, rep])=>{
+    const next = [];
+    bases.forEach(b=>{
+      next.push(b);
+      if (b.includes(pat)) next.push(b.split(pat).join(rep));
+    });
+    bases = [...new Set(next)];
+  });
+  /* "OO대학교사범대학..." 처럼 대학 이름 뒤에 다른 말이 이어지면 '대학교'는 생략하는 경우가 많다 (강원대학교→강원). */
+  bases = bases.flatMap(b=>{
+    const m = b.match(/^(.+?)대학교(.+)$/);
+    return m ? [b, m[1]+m[2]] : [b];
+  });
+  bases = [...new Set(bases)];
+  bases = bases.flatMap(b=>{
+    const tail = ABBR_TAIL_RULES.find(([suf])=>b.endsWith(suf));
+    return tail ? [b, b.slice(0, -tail[0].length) + tail[1]] : [b];
+  });
+  const result = [...new Set(bases)];
+  ABBR_CACHE.set(fullName, result);
+  return result;
+}
+
+function schoolNameMatches(fullName, query){
+  if (!query) return true;
+  if (fullName === query || fullName.includes(query)) return true;
+  return schoolNameAbbreviations(fullName).some(ab => ab === query || ab.includes(query));
+}
+
 function doSearch(){
   const year = Number(document.getElementById('f-year').value);
   const region = document.getElementById('f-region').value;
@@ -710,7 +918,7 @@ function doSearch(){
   homeResults.innerHTML = '';
 
   if (name) {
-    const candidates = SCHOOLS.filter(s => s.name === name || s.name.includes(name));
+    const candidates = SCHOOLS.filter(s => schoolNameMatches(s.name, name));
     if (!candidates.length) {
       homeResults.hidden = true;
       note.hidden = false; note.textContent = `"${name}"에 해당하는 학교를 찾을 수 없습니다.`;
@@ -727,28 +935,23 @@ function doSearch(){
     return;
   }
 
-  if (level === '초' || level === '중') {
+  if (level === '초' || level === '중' || level === '고') {
     const levelPool = SCHOOLS.filter(s => s.level === level && s.year === year);
     if (!levelPool.length) {
       homeResults.hidden = true;
       note.hidden = false; note.textContent = `${LEVEL_NAMES[level]} ${year}년 자료가 없습니다. 관리자 페이지에서 파일을 추가할 수 있습니다.`;
       return;
     }
-    let lvlList = levelPool;
-    if (region) lvlList = lvlList.filter(s=>s.region===region);
-    renderLevelResult(homeResults, lvlList, region, level, year);
-    return;
-  }
-
-  if (level === '고') {
-    if (!SCHOOLS.some(s => s.level === '고' && s.year === year)) {
-      homeResults.hidden = true;
-      note.hidden = false; note.textContent = `고등학교 ${year}년 자료가 없습니다. 관리자 페이지에서 파일을 추가할 수 있습니다.`;
+    if (region) {
+      /* 지역+학교급을 모두 선택한 경우, 초/중/고 탭에서 지역을 선택했을 때와 동일한 화면을 보여준다. */
+      renderLevelRegionDetail(homeResults, region, level, year);
       return;
     }
-    let list = SCHOOLS.filter(s=>s.level==='고' && s.year===year);
-    if (region) list = list.filter(s=>s.region===region);
-    renderRegionResult(homeResults, list, region, year);
+    if (level === '고') {
+      renderRegionResult(homeResults, levelPool, year);
+    } else {
+      renderLevelResult(homeResults, levelPool, level, year);
+    }
     return;
   }
 
@@ -845,29 +1048,54 @@ function renderAllLevelsResult(container, region, year){
       filename: `${label}_초중고_학생수`
     });
 
-    const cardGrade = document.createElement('div'); cardGrade.className='card wide';
-    cardGrade.innerHTML = `<h2>${label} 초1~고3 학생 수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-all-region-grade"></div>`;
-    container.appendChild(cardGrade);
-    const gradeCategories = [], gradeData = [];
-    levelOrder.forEach(lv=>{
+    /* 학년별(초1~고3) 학급수·학생수는 학교급별로 막대를 나누고, 같은 학교급 안에서만 학년별로 쌓는 누적 막대그래프로 표현한다. */
+    const gradeSnapshotGroups = metricKey => levelOrder.map(lv=>{
       const pool = list.filter(s=>s.level===lv);
+      const shades = gradeFamilyShades(lv, GRADE_COUNT[lv]);
+      const segments = [];
       for (let g=1; g<=GRADE_COUNT[lv]; g++){
-        gradeCategories.push(`${LEVEL_NAMES[lv][0]}${g}`);
-        gradeData.push(pool.reduce((a,s)=>a+(s.students['g'+g]||0),0));
+        segments.push({
+          name: `${LEVEL_NAMES[lv][0]}${g}`,
+          color: shades[g-1],
+          value: pool.reduce((a,s)=>a+(s[metricKey]['g'+g]||0),0),
+          unit: metricKey==='classes' ? '개' : '명'
+        });
       }
-    });
-    renderChart(document.getElementById('res-all-region-grade'), {
-      settingsKey: 'homeGrade',
-      categories: gradeCategories,
-      series: [{name:'학생수', color:PALETTE[1], data: gradeData, unit:'명'}],
-      filename: `${label}_초1고3_학생수`
+      return {label: LEVEL_NAMES[lv], segments};
     });
 
-    const card = document.createElement('div'); card.className='card wide';
+    const cardGradeClass = document.createElement('div'); cardGradeClass.className='card wide';
+    cardGradeClass.innerHTML = `<h2>${label} 학년별 학급수</h2><p class="sub">${year}년 기준 · 학교급별 · 초1~고3</p><div class="chart-wrap" id="res-all-region-grade-class"></div>`;
+    container.appendChild(cardGradeClass);
+    renderGroupedStackedBar(document.getElementById('res-all-region-grade-class'), {groups: gradeSnapshotGroups('classes'), filename:`${label}_학년별_학급수`});
+    appendChartDownloadRow(document.getElementById('res-all-region-grade-class'), `${label}_학년별_학급수`);
+
+    const cardGrade = document.createElement('div'); cardGrade.className='card wide';
+    cardGrade.innerHTML = `<h2>${label} 학년별 학생수</h2><p class="sub">${year}년 기준 · 학교급별 · 초1~고3</p><div class="chart-wrap" id="res-all-region-grade"></div>`;
+    container.appendChild(cardGrade);
+    renderGroupedStackedBar(document.getElementById('res-all-region-grade'), {groups: gradeSnapshotGroups('students'), filename:`${label}_학년별_학생수`});
+    appendChartDownloadRow(document.getElementById('res-all-region-grade'), `${label}_학년별_학생수`);
+
     const sorted = list.slice().sort((a,b)=> levelOrder.indexOf(a.level)-levelOrder.indexOf(b.level) || a.name.localeCompare(b.name,'ko'));
-    const rows = sorted.map(s=>`<tr><td>${LEVEL_NAMES[s.level]}</td><td>${s.name}</td><td>${s.est}</td><td>${s.classes.total.toLocaleString()}</td><td>${s.students.total.toLocaleString()}</td><td>${s.staff.toLocaleString()}</td></tr>`).join('');
-    card.innerHTML = `<h2>${label} ${year}년 학교 목록</h2><div class="table-wrap"><table><thead><tr><th>학교급</th><th>학교명</th><th>설립</th><th>학급수</th><th>학생수</th><th>교사수</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    const card = document.createElement('div'); card.className='card wide';
+    card.innerHTML = `
+      <div class="type-toolbar">
+        <h2 style="margin:0;">${label} ${year}년 학교 목록</h2>
+        <div class="type-download-btns">
+          <button id="res-all-download-csv" class="btn">CSV 다운로드</button>
+          <button id="res-all-download-xls" class="btn">엑셀 다운로드</button>
+        </div>
+      </div>
+      <div class="table-wrap tall">
+        <table>
+          <thead><tr>${mixedTableHeadCells().map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+          <tbody>${mixedTableRowsHtml(sorted)}</tbody>
+        </table>
+      </div>
+    `;
     container.appendChild(card);
+    card.querySelector('#res-all-download-csv').addEventListener('click', ()=> downloadCSV(sorted, `강원도_${label}_학교목록`, buildMixedExportRows));
+    card.querySelector('#res-all-download-xls').addEventListener('click', ()=> downloadExcel(sorted, `강원도_${label}_학교목록`, buildMixedExportRows, '학교목록'));
   }
 }
 
@@ -1015,83 +1243,57 @@ function buildHomeRankWidgetCard(container, yearList, year, idPrefix){
   renderRank();
 }
 
-function renderLevelResult(container, list, region, level, year){
+function renderLevelResult(container, list, level, year){
   const levelName = LEVEL_NAMES[level];
-  const label = region ? shortRegion(region) : '도내 전체';
+  const label = '도내 전체';
 
   const summary = document.createElement('div'); summary.className='card wide';
   summary.innerHTML = `<h2>요약</h2><p>학교 수: <strong>${list.length}개교</strong> · 총 학급수: <strong>${list.reduce((a,s)=>a+s.classes.total,0).toLocaleString()}개</strong> · 총 학생수: <strong>${list.reduce((a,s)=>a+s.students.total,0).toLocaleString()}명</strong> · 총 교사수: <strong>${list.reduce((a,s)=>a+s.staff,0).toLocaleString()}명</strong></p>`;
   container.appendChild(summary);
 
-  if (!region) {
-    const card = document.createElement('div'); card.className='card wide';
-    card.innerHTML = `<h2>${label} 시군별 ${levelName} 수</h2><p class="sub">${year}년 기준 업로드 자료</p><div class="chart-wrap" id="lvl-chart-region"></div>`;
-    container.appendChild(card);
-    renderChart(document.getElementById('lvl-chart-region'), {
-      categories: REGION_ORDER.map(shortRegion),
-      series: [{name: levelName, color:PALETTE[2], data: countByRegion(list), unit:'개교'}],
-      filename: `${label}_시군별_${levelName}수`
-    });
+  const card = document.createElement('div'); card.className='card wide';
+  card.innerHTML = `<h2>${label} 시군별 ${levelName} 수</h2><p class="sub">${year}년 기준 업로드 자료</p><div class="chart-wrap" id="lvl-chart-region"></div>`;
+  container.appendChild(card);
+  renderChart(document.getElementById('lvl-chart-region'), {
+    categories: REGION_ORDER.map(shortRegion),
+    series: [{name: levelName, color:PALETTE[2], data: countByRegion(list), unit:'개교'}],
+    filename: `${label}_시군별_${levelName}수`
+  });
 
-    const cardStudents = document.createElement('div'); cardStudents.className='card wide';
-    cardStudents.innerHTML = `<h2>${label} 시군별 ${levelName} 학생수</h2><p class="sub">${year}년 기준 업로드 자료</p><div class="chart-wrap" id="lvl-chart-region-students"></div>`;
-    container.appendChild(cardStudents);
-    renderChart(document.getElementById('lvl-chart-region-students'), {
-      categories: REGION_ORDER.map(shortRegion),
-      series: [{name: levelName+' 학생수', color:PALETTE[3], data: studentsByRegion(list), unit:'명'}],
-      filename: `${label}_시군별_${levelName}학생수`
-    });
-  } else {
-    const cardCount = document.createElement('div'); cardCount.className='card';
-    cardCount.innerHTML = `<h2>${label} ${levelName} 전체 학교 수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="lvl-chart-count"></div>`;
-    const cardGrade = document.createElement('div'); cardGrade.className='card';
-    cardGrade.innerHTML = `<h2>${label} 학년별 학생 수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="lvl-chart-students"></div>`;
-    container.appendChild(cardCount);
-    container.appendChild(cardGrade);
-
-    renderChart(document.getElementById('lvl-chart-count'), {
-      categories: [levelName],
-      series: [{name:'학교수', color:PALETTE[2], data:[list.length], unit:'개교'}],
-      filename: `${label}_${levelName}_전체학교수`
-    });
-    const gradeCount = GRADE_COUNT[level];
-    const gradeLabels = Array.from({length:gradeCount},(_,i)=>`${i+1}학년`);
-    renderChart(document.getElementById('lvl-chart-students'), {
-      categories: gradeLabels,
-      series: [{name:'학생수', color:PALETTE[1], data: gradeLabels.map((_,i)=> list.reduce((a,s)=>a+(s.students['g'+(i+1)]||0),0)), unit:'명'}],
-      filename: `${label}_학년별_학생수`
-    });
-
-    buildRankWidgetCard(container, list, label, year, 'lvl-rank');
-  }
+  const cardStudents = document.createElement('div'); cardStudents.className='card wide';
+  cardStudents.innerHTML = `<h2>${label} 시군별 ${levelName} 학생수</h2><p class="sub">${year}년 기준 업로드 자료</p><div class="chart-wrap" id="lvl-chart-region-students"></div>`;
+  container.appendChild(cardStudents);
+  renderChart(document.getElementById('lvl-chart-region-students'), {
+    categories: REGION_ORDER.map(shortRegion),
+    series: [{name: levelName+' 학생수', color:PALETTE[3], data: studentsByRegion(list), unit:'명'}],
+    filename: `${label}_시군별_${levelName}학생수`
+  });
 }
 
-function renderRegionResult(container, list, region, year){
-  const label = region ? shortRegion(region) : '도내 전체';
+function renderRegionResult(container, list, year){
+  const label = '도내 전체';
 
   const summary = document.createElement('div'); summary.className='card wide';
   summary.innerHTML = `<h2>요약</h2><p>학교 수: <strong>${list.length}개교</strong> · 총 학생수: <strong>${list.reduce((a,s)=>a+s.students.total,0).toLocaleString()}명</strong> · 총 학급수: <strong>${list.reduce((a,s)=>a+s.classes.total,0).toLocaleString()}개</strong></p>`;
   container.appendChild(summary);
 
-  if (!region) {
-    const cardRegionCount = document.createElement('div'); cardRegionCount.className='card wide';
-    cardRegionCount.innerHTML = `<h2>${label} 시군별 고등학교 수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-chart-region-count"></div>`;
-    container.appendChild(cardRegionCount);
-    renderChart(document.getElementById('res-chart-region-count'), {
-      categories: REGION_ORDER.map(shortRegion),
-      series: [{name:'고등학교', color:PALETTE[2], data: countByRegion(list), unit:'개교'}],
-      filename: `${label}_시군별_고등학교수`
-    });
+  const cardRegionCount = document.createElement('div'); cardRegionCount.className='card wide';
+  cardRegionCount.innerHTML = `<h2>${label} 시군별 고등학교 수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-chart-region-count"></div>`;
+  container.appendChild(cardRegionCount);
+  renderChart(document.getElementById('res-chart-region-count'), {
+    categories: REGION_ORDER.map(shortRegion),
+    series: [{name:'고등학교', color:PALETTE[2], data: countByRegion(list), unit:'개교'}],
+    filename: `${label}_시군별_고등학교수`
+  });
 
-    const cardRegionStudents = document.createElement('div'); cardRegionStudents.className='card wide';
-    cardRegionStudents.innerHTML = `<h2>${label} 시군별 고등학교 학생수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-chart-region-students"></div>`;
-    container.appendChild(cardRegionStudents);
-    renderChart(document.getElementById('res-chart-region-students'), {
-      categories: REGION_ORDER.map(shortRegion),
-      series: [{name:'학생수', color:PALETTE[3], data: studentsByRegion(list), unit:'명'}],
-      filename: `${label}_시군별_고등학교학생수`
-    });
-  }
+  const cardRegionStudents = document.createElement('div'); cardRegionStudents.className='card wide';
+  cardRegionStudents.innerHTML = `<h2>${label} 시군별 고등학교 학생수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-chart-region-students"></div>`;
+  container.appendChild(cardRegionStudents);
+  renderChart(document.getElementById('res-chart-region-students'), {
+    categories: REGION_ORDER.map(shortRegion),
+    series: [{name:'학생수', color:PALETTE[3], data: studentsByRegion(list), unit:'명'}],
+    filename: `${label}_시군별_고등학교학생수`
+  });
 
   const card1 = document.createElement('div'); card1.className='card';
   card1.innerHTML = `<h2>${label} 고등학교 유형별 학교 수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="res-chart-count"></div>`;
@@ -1123,6 +1325,8 @@ function renderSchoolDetail(container, s){
   const classesData = gradeLabels.map((_, i) => s.classes['g' + (i + 1)] || 0);
   const studentsData = gradeLabels.map((_, i) => s.students['g' + (i + 1)] || 0);
   const typeInfo = s.level === '고' ? ` · ${s.type || '유형 미기재'} · ${s.coed}` : '';
+  const male = s.students.male || 0, female = s.students.female || 0;
+  const hasGender = (male + female) > 0;
 
   const card = document.createElement('div'); card.className='card wide';
   card.innerHTML = `
@@ -1131,6 +1335,8 @@ function renderSchoolDetail(container, s){
     <div class="detail-grid">
       <div><p class="sub">학년별 학급수</p><div class="chart-wrap" id="detail-classes"></div></div>
       <div><p class="sub">학년별 학생수</p><div class="chart-wrap" id="detail-students"></div></div>
+      <div><p class="sub">남녀 성비</p><div class="chart-wrap" id="detail-gender"></div></div>
+      <div><p class="sub">학급당 학생수 · 교원 1인당 학생수</p><div class="chart-wrap" id="detail-ratio"></div></div>
     </div>
   `;
   container.appendChild(card);
@@ -1144,6 +1350,25 @@ function renderSchoolDetail(container, s){
     series:[{name:'학생수', color:PALETTE[3], data: studentsData, unit:'명'}],
     filename: `${s.name}_학년별_학생수`
   });
+
+  const genderMount = document.getElementById('detail-gender');
+  if (hasGender) {
+    renderDonutChart(genderMount, {
+      categories: ['남학생','여학생'],
+      series: [{name:'학생수', data:[male, female], unit:'명'}]
+    });
+    appendChartDownloadRow(genderMount, `${s.name}_남녀성비`);
+  } else {
+    genderMount.innerHTML = '<p class="empty">성별 자료가 없습니다.</p>';
+  }
+
+  const perClass = s.classes.total > 0 ? Math.round((s.students.total / s.classes.total) * 10) / 10 : 0;
+  const perStaff = s.staff > 0 ? Math.round((s.students.total / s.staff) * 10) / 10 : 0;
+  renderChart(document.getElementById('detail-ratio'), {
+    categories: ['학급당 학생수','교원 1인당 학생수'],
+    series: [{name:'학생수', color:PALETTE[5], data: [perClass, perStaff], unit:'명'}],
+    filename: `${s.name}_학급당_교원당_학생수`
+  });
 }
 
 /* ---------- level view (초등학교 / 중학교 / 고등학교 탭 공용) ---------- */
@@ -1152,14 +1377,32 @@ let TYPE_TABLE_LIST = [];
 
 function initLevelView(){
   document.getElementById('type-checks').addEventListener('change', onTypeCheckChange);
-  document.getElementById('btn-download-csv').addEventListener('click', downloadTypeCSV);
-  document.getElementById('btn-download-xls').addEventListener('click', downloadTypeExcel);
-  document.getElementById('level-year').addEventListener('change', ()=>{
-    const year = document.getElementById('level-year').value;
-    rebuildTypeCheckboxes(CURRENT_LEVEL, year);
-    renderLevelOverview(CURRENT_LEVEL, year);
-    updateLevelTable();
+  document.getElementById('btn-download-csv').addEventListener('click', ()=>{
+    downloadCSV(TYPE_TABLE_LIST, `강원도_${LEVEL_NAMES[CURRENT_LEVEL]}_현황`, (l)=>buildExportRows(CURRENT_LEVEL, l));
   });
+  document.getElementById('btn-download-xls').addEventListener('click', ()=>{
+    downloadExcel(TYPE_TABLE_LIST, `강원도_${LEVEL_NAMES[CURRENT_LEVEL]}_현황`, (l)=>buildExportRows(CURRENT_LEVEL, l), LEVEL_NAMES[CURRENT_LEVEL]);
+  });
+  const regionSel = document.getElementById('level-region');
+  regionSel.innerHTML = '<option value="">전체</option>' + REGION_ORDER.map(r=>`<option value="${r}">${shortRegion(r)}</option>`).join('');
+  regionSel.addEventListener('change', refreshLevelView);
+  document.getElementById('level-year').addEventListener('change', refreshLevelView);
+}
+
+/* 기준연도/지역 선택에 따라 '전체 지역' 화면(시군별 차트+전체 표)과 '지역 선택' 화면(요약/학교수/학년별 차트/순위/정보표)을 전환한다. */
+function refreshLevelView(){
+  const level = CURRENT_LEVEL;
+  const year = document.getElementById('level-year').value;
+  const region = document.getElementById('level-region').value;
+  document.getElementById('level-allregion-block').hidden = !!region;
+  document.getElementById('level-region-block').hidden = !region;
+  if (region) {
+    renderLevelRegionDetail(document.getElementById('level-region-block'), region, level, year);
+  } else {
+    rebuildTypeCheckboxes(level, year);
+    renderLevelOverview(level, year);
+    updateLevelTable();
+  }
 }
 
 function renderLevelOverview(level, year){
@@ -1235,16 +1478,10 @@ function renderLevelView(level){
     : '업로드된 자료 기준 (학교유형 구분 없음)';
 
   populateLevelYearOptions(level);
-  const year = document.getElementById('level-year').value;
-  rebuildTypeCheckboxes(level, year);
-  renderLevelOverview(level, year);
 
-  const gradeCount = GRADE_COUNT[level];
-  const gradeLabel = Array.from({length: gradeCount}, (_,i)=>i+1).join('/');
-  const headCells = ['지역','설립', ...(isHigh?['학교유형']:[]), '학교명','연도', `학년별 학급수(${gradeLabel})`, `학년별 학생수(${gradeLabel})`, '학급수 계','학생수 계'];
-  document.getElementById('type-table-head').innerHTML = '<tr>' + headCells.map(c=>`<th>${c}</th>`).join('') + '</tr>';
+  document.getElementById('type-table-head').innerHTML = '<tr>' + levelTableHeadCells(level).map(c=>`<th>${c}</th>`).join('') + '</tr>';
 
-  updateLevelTable();
+  refreshLevelView();
 }
 
 function onTypeCheckChange(e){
@@ -1257,6 +1494,153 @@ function onTypeCheckChange(e){
     allBox.checked = others.every(b=>b.checked);
   }
   updateLevelTable();
+}
+
+/* 버튼 크기(칸 너비)는 그대로 두고, 글자가 한 줄에 다 들어오지 않으면 글자 크기만 줄여서 맞춘다. */
+function fitButtonText(btn){
+  const minPx = 9;
+  let fontSize = 12;
+  btn.style.fontSize = fontSize + 'px';
+  while (btn.scrollWidth > btn.clientWidth && fontSize > minPx) {
+    fontSize -= 1;
+    btn.style.fontSize = fontSize + 'px';
+  }
+}
+
+/* 초/중/고 탭에서 학교명 버튼을 누르면 기본화면 탭으로 이동해 그 학교를 검색한 것과 같은 화면을 보여준다. */
+function goToHomeSchoolDetail(name, year){
+  document.querySelector('.tab-btn[data-view="home"]').click();
+  document.getElementById('f-year').value = String(year);
+  document.getElementById('f-name').value = name;
+  doSearch();
+}
+
+/* 초/중/고 탭에서 지역을 선택했을 때의 상세 화면: 요약 / 학교수 그래프(+학교명 버튼) / 학년별 학급·학생수 그래프 / 학교 순위 / 학교정보표. */
+function renderLevelRegionDetail(container, region, level, year){
+  container.innerHTML = '';
+  const levelName = LEVEL_NAMES[level];
+  const regionLabel = shortRegion(region);
+  const label = `${regionLabel} ${levelName}`;
+  const list = SCHOOLS.filter(s => s.level === level && s.year === Number(year) && s.region === region)
+    .sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+
+  if (!list.length) {
+    container.innerHTML = `<div class="card wide"><p class="empty">${label} ${year}년 자료가 없습니다. 관리자 페이지에서 파일을 추가할 수 있습니다.</p></div>`;
+    return;
+  }
+
+  const summary = document.createElement('div'); summary.className = 'card wide';
+  summary.innerHTML = `<h2>요약</h2><p>학교 수: <strong>${list.length}개교</strong> · 학급수 합계: <strong>${list.reduce((a,s)=>a+s.classes.total,0).toLocaleString()}개</strong> · 학생수 합계: <strong>${list.reduce((a,s)=>a+s.students.total,0).toLocaleString()}명</strong> · 교사수 합계: <strong>${list.reduce((a,s)=>a+s.staff,0).toLocaleString()}명</strong></p>`;
+  container.appendChild(summary);
+
+  const countCard = document.createElement('div'); countCard.className = 'card';
+  countCard.innerHTML = `
+    <h2>${label} 학교 수</h2>
+    <p class="sub">${year}년 기준${level==='고' ? ' · 학교유형별' : ''}</p>
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div class="chart-wrap" id="lvlreg-chart-count" style="flex:0 0 140px;max-width:140px;"></div>
+      <div id="lvlreg-school-buttons" style="flex:1;display:grid;grid-template-columns:repeat(2,minmax(100px,1fr));gap:6px;max-height:340px;overflow-y:auto;min-width:220px;"></div>
+    </div>
+  `;
+  container.appendChild(countCard);
+
+  const btnWrap = countCard.querySelector('#lvlreg-school-buttons');
+  list.forEach(s=>{
+    const btn = document.createElement('button');
+    btn.className = 'btn small school-name-btn';
+    btn.textContent = s.name;
+    btn.addEventListener('click', ()=> goToHomeSchoolDetail(s.name, s.year));
+    btnWrap.appendChild(btn);
+  });
+  btnWrap.querySelectorAll('.school-name-btn').forEach(fitButtonText);
+
+  const countMount = countCard.querySelector('#lvlreg-chart-count');
+  if (level === '고') {
+    const types = [...new Set(list.map(s=>s.type).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
+    const typeSeries = types.length
+      ? types.map(t=>({name:t, data:[list.filter(s=>s.type===t).length], unit:'개교'}))
+      : [{name:'학교수', data:[list.length], unit:'개교'}];
+    renderStackedBarYearChange(countMount, {yearLabels:[regionLabel], series:typeSeries, filename:`${label}_학교유형별_학교수`});
+    appendChartDownloadRow(countMount, `${label}_학교유형별_학교수`);
+  } else {
+    renderChart(countMount, {
+      categories:[regionLabel],
+      series:[{name:'학교수', color:levelRepresentativeColor(level), data:[list.length], unit:'개교'}],
+      filename:`${label}_학교수`
+    });
+  }
+
+  const gradeCount = GRADE_COUNT[level];
+  const gradeLabels = Array.from({length:gradeCount},(_,i)=>`${i+1}학년`);
+  const gradeShades = gradeFamilyShades(level, gradeCount);
+
+  const classCard = document.createElement('div'); classCard.className = 'card';
+  classCard.innerHTML = `<h2>${label} 학년별 학급수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="lvlreg-chart-classes"></div>`;
+  container.appendChild(classCard);
+  renderChart(document.getElementById('lvlreg-chart-classes'), {
+    categories: gradeLabels,
+    series:[{name:'학급수', color:gradeShades[gradeShades.length-1], data: gradeLabels.map((_,i)=>list.reduce((a,s)=>a+(s.classes['g'+(i+1)]||0),0)), unit:'개'}],
+    filename:`${label}_학년별_학급수`
+  });
+
+  const studentCard = document.createElement('div'); studentCard.className = 'card';
+  studentCard.innerHTML = `<h2>${label} 학년별 학생수</h2><p class="sub">${year}년 기준</p><div class="chart-wrap" id="lvlreg-chart-students"></div>`;
+  container.appendChild(studentCard);
+  renderChart(document.getElementById('lvlreg-chart-students'), {
+    categories: gradeLabels,
+    series:[{name:'학생수', color:gradeShades[gradeShades.length-1], data: gradeLabels.map((_,i)=>list.reduce((a,s)=>a+(s.students['g'+(i+1)]||0),0)), unit:'명'}],
+    filename:`${label}_학년별_학생수`
+  });
+
+  buildRankWidgetCard(container, list, label, year, 'lvlreg-rank');
+
+  const isHigh = level === '고';
+  const tableCard = document.createElement('div'); tableCard.className = 'card wide';
+  tableCard.innerHTML = `
+    <div class="type-toolbar">
+      <h2 style="margin:0;">${label} 학교정보표</h2>
+      <div class="type-download-btns">
+        <button id="lvlreg-download-csv" class="btn">CSV 다운로드</button>
+        <button id="lvlreg-download-xls" class="btn">엑셀 다운로드</button>
+      </div>
+    </div>
+    <div class="table-wrap tall">
+      <table>
+        <thead><tr>${levelTableHeadCells(level).map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+        <tbody>${levelTableRowsHtml(level, list)}</tbody>
+      </table>
+    </div>
+  `;
+  container.appendChild(tableCard);
+  tableCard.querySelector('#lvlreg-download-csv').addEventListener('click', ()=> downloadCSV(list, `강원도_${label}_현황`, (l)=>buildExportRows(level, l)));
+  tableCard.querySelector('#lvlreg-download-xls').addEventListener('click', ()=> downloadExcel(list, `강원도_${label}_현황`, (l)=>buildExportRows(level, l), levelName));
+}
+
+/* 학교 정보표(지역/설립/학교유형/학교명/... 학년별 학급·학생수) 공용 헤더·행 마크업. 전체 지역 표와 지역별 상세 표에서 함께 사용한다. */
+function levelTableHeadCells(level){
+  const isHigh = level === '고';
+  const gradeCount = GRADE_COUNT[level];
+  const gradeLabel = Array.from({length: gradeCount}, (_,i)=>i+1).join('/');
+  return ['지역','설립', ...(isHigh?['학교유형']:[]), '학교명','연도', `학년별 학급수(${gradeLabel})`, `학년별 학생수(${gradeLabel})`, '학급수 계','학생수 계'];
+}
+function levelTableRowsHtml(level, list){
+  const isHigh = level === '고';
+  const gradeCount = GRADE_COUNT[level];
+  return list.map(s=>{
+    const classesStr = Array.from({length:gradeCount},(_,i)=>s.classes['g'+(i+1)]||0).join('/');
+    const studentsStr = Array.from({length:gradeCount},(_,i)=>s.students['g'+(i+1)]||0).join('/');
+    return `<tr>
+      <td>${shortRegion(s.region)}</td>
+      <td>${s.est}</td>
+      ${isHigh?`<td>${s.type||'-'}</td>`:''}
+      <td>${s.name}</td>
+      <td>${s.year}</td>
+      <td>${classesStr}</td>
+      <td>${studentsStr}</td>
+      <td>${s.classes.total.toLocaleString()}</td>
+      <td>${s.students.total.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
 }
 
 function updateLevelTable(){
@@ -1283,21 +1667,7 @@ function updateLevelTable(){
     return;
   }
 
-  tbody.innerHTML = list.map(s=>{
-    const classesStr = Array.from({length:gradeCount},(_,i)=>s.classes['g'+(i+1)]||0).join('/');
-    const studentsStr = Array.from({length:gradeCount},(_,i)=>s.students['g'+(i+1)]||0).join('/');
-    return `<tr>
-      <td>${shortRegion(s.region)}</td>
-      <td>${s.est}</td>
-      ${isHigh?`<td>${s.type||'-'}</td>`:''}
-      <td>${s.name}</td>
-      <td>${s.year}</td>
-      <td>${classesStr}</td>
-      <td>${studentsStr}</td>
-      <td>${s.classes.total.toLocaleString()}</td>
-      <td>${s.students.total.toLocaleString()}</td>
-    </tr>`;
-  }).join('');
+  tbody.innerHTML = levelTableRowsHtml(level, list);
 
   const sumClasses = list.reduce((a,s)=>a+s.classes.total,0);
   const sumStudents = list.reduce((a,s)=>a+s.students.total,0);
@@ -1309,20 +1679,58 @@ function updateLevelTable(){
 }
 
 /* ---------- export (CSV / Excel) ---------- */
-function buildTypeExportRows(){
-  const level = CURRENT_LEVEL;
+function buildExportRows(level, list){
   const isHigh = level === '고';
   const gradeCount = GRADE_COUNT[level];
+  const textColCount = isHigh ? 4 : 3;
   const headers = ['지역','설립', ...(isHigh?['학교유형']:[]), '학교명','연도',
     ...Array.from({length:gradeCount},(_,i)=>`${i+1}학년 학급수`), '학급수 계',
     ...Array.from({length:gradeCount},(_,i)=>`${i+1}학년 학생수`), '학생수 계'];
-  const rows = TYPE_TABLE_LIST.map(s=>[
+  const rows = list.map(s=>[
     shortRegion(s.region), s.est, ...(isHigh?[s.type||'-']:[]), s.name, s.year,
     ...Array.from({length:gradeCount},(_,i)=>s.classes['g'+(i+1)]||0), s.classes.total,
     ...Array.from({length:gradeCount},(_,i)=>s.students['g'+(i+1)]||0), s.students.total
   ]);
-  return {headers, rows};
+  const colTypes = headers.map((_,i)=> i < textColCount ? 'String' : 'Number');
+  return {headers, rows, colTypes};
 }
+
+/* 초/중/고가 섞인 학교 목록(기본화면 지역+전체 학교급 조회)용 헤더·행. 학교마다 학교급이 달라 학년 수가
+   다르므로, 학년별 칸을 각각 나누지 않고 '1/2/3...' 형태의 문자열 한 칸으로 표시한다. */
+function mixedTableHeadCells(){
+  return ['학교급','학교유형','학교명','설립','연도','학년별 학급수','학년별 학생수','학급수 계','학생수 계','교사수'];
+}
+function mixedTableRowsHtml(list){
+  return list.map(s=>{
+    const gc = GRADE_COUNT[s.level];
+    const classesStr = Array.from({length:gc},(_,i)=>s.classes['g'+(i+1)]||0).join('/');
+    const studentsStr = Array.from({length:gc},(_,i)=>s.students['g'+(i+1)]||0).join('/');
+    return `<tr>
+      <td>${LEVEL_NAMES[s.level]}</td>
+      <td>${s.level==='고' ? (s.type||'-') : '-'}</td>
+      <td>${s.name}</td>
+      <td>${s.est}</td>
+      <td>${s.year}</td>
+      <td>${classesStr}</td>
+      <td>${studentsStr}</td>
+      <td>${s.classes.total.toLocaleString()}</td>
+      <td>${s.students.total.toLocaleString()}</td>
+      <td>${s.staff.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+}
+function buildMixedExportRows(list){
+  const headers = mixedTableHeadCells();
+  const colTypes = ['String','String','String','String','Number','String','String','Number','Number','Number'];
+  const rows = list.map(s=>{
+    const gc = GRADE_COUNT[s.level];
+    const classesStr = Array.from({length:gc},(_,i)=>s.classes['g'+(i+1)]||0).join('/');
+    const studentsStr = Array.from({length:gc},(_,i)=>s.students['g'+(i+1)]||0).join('/');
+    return [LEVEL_NAMES[s.level], s.level==='고' ? (s.type||'-') : '-', s.name, s.est, s.year, classesStr, studentsStr, s.classes.total, s.students.total, s.staff];
+  });
+  return {headers, rows, colTypes};
+}
+
 function triggerDownload(filename, content, mime){
   const blob = new Blob([content], {type: mime});
   const url = URL.createObjectURL(blob);
@@ -1336,28 +1744,23 @@ function csvEscape(val){
   if (/[",\n]/.test(str)) return '"' + str.replace(/"/g,'""') + '"';
   return str;
 }
-function downloadTypeCSV(){
-  if (!TYPE_TABLE_LIST.length){ alert('다운로드할 데이터가 없습니다.'); return; }
-  const {headers, rows} = buildTypeExportRows();
+function downloadCSV(list, filenameBase, rowsBuilder){
+  if (!list.length){ alert('다운로드할 데이터가 없습니다.'); return; }
+  const {headers, rows} = rowsBuilder(list);
   const lines = [headers, ...rows].map(r=>r.map(csvEscape).join(','));
   const csv = '\uFEFF' + lines.join('\r\n');
-  triggerDownload(`강원도_${LEVEL_NAMES[CURRENT_LEVEL]}_현황.csv`, csv, 'text/csv;charset=utf-8;');
+  triggerDownload(`${filenameBase}.csv`, csv, 'text/csv;charset=utf-8;');
 }
 function xmlEscape(val){
   return String(val).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-function downloadTypeExcel(){
-  if (!TYPE_TABLE_LIST.length){ alert('다운로드할 데이터가 없습니다.'); return; }
-  const {headers, rows} = buildTypeExportRows();
-  const isHigh = CURRENT_LEVEL === '고';
-  const textColCount = isHigh ? 4 : 3;
+function downloadExcel(list, filenameBase, rowsBuilder, sheetName){
+  if (!list.length){ alert('다운로드할 데이터가 없습니다.'); return; }
+  const {headers, rows, colTypes} = rowsBuilder(list);
   const headerRow = `<Row>${headers.map(h=>`<Cell><Data ss:Type="String">${xmlEscape(h)}</Data></Cell>`).join('')}</Row>`;
-  const bodyRows = rows.map(r=>`<Row>${r.map((v,i)=>{
-    const type = i >= textColCount ? 'Number' : 'String';
-    return `<Cell><Data ss:Type="${type}">${xmlEscape(v)}</Data></Cell>`;
-  }).join('')}</Row>`).join('');
-  const xml = '<?xml version="1.0"?>\n<?mso-application progid="Excel.Sheet"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n<Worksheet ss:Name="${LEVEL_NAMES[CURRENT_LEVEL]}">\n<Table>\n' + headerRow + bodyRows + '\n</Table>\n</Worksheet>\n</Workbook>';
-  triggerDownload(`강원도_${LEVEL_NAMES[CURRENT_LEVEL]}_현황.xls`, xml, 'application/vnd.ms-excel;charset=utf-8;');
+  const bodyRows = rows.map(r=>`<Row>${r.map((v,i)=>`<Cell><Data ss:Type="${colTypes[i]}">${xmlEscape(v)}</Data></Cell>`).join('')}</Row>`).join('');
+  const xml = '<?xml version="1.0"?>\n<?mso-application progid="Excel.Sheet"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n<Worksheet ss:Name="${sheetName}">\n<Table>\n' + headerRow + bodyRows + '\n</Table>\n</Worksheet>\n</Workbook>';
+  triggerDownload(`${filenameBase}.xls`, xml, 'application/vnd.ms-excel;charset=utf-8;');
 }
 
 /* ---------- minimal XLSX reader (no external libraries; uses native ZIP parsing + DecompressionStream) ---------- */
@@ -2426,7 +2829,7 @@ function renderAdminTable(){
   const clearBtn = document.getElementById('btn-admin-search-clear');
   if (clearBtn) clearBtn.hidden = !ADMIN_SEARCH_TERM;
   const pairs = SCHOOLS.map((s,idx)=>({s,idx}))
-    .filter(({s})=> !ADMIN_SEARCH_TERM || s.name.includes(ADMIN_SEARCH_TERM));
+    .filter(({s})=> !ADMIN_SEARCH_TERM || schoolNameMatches(s.name, ADMIN_SEARCH_TERM));
   if (!pairs.length) {
     tbody.innerHTML = `<tr><td colspan="8" class="empty">"${ADMIN_SEARCH_TERM}"에 해당하는 학교를 찾을 수 없습니다.</td></tr>`;
     return;
@@ -2689,6 +3092,332 @@ function ycCardClass(years){
   return years.length <= 3 ? 'card' : 'card wide';
 }
 
+/* ---------- 주제별 DATA ---------- */
+let TOPICS_INIT = false;
+const SMALL_SCHOOL_THRESHOLD = 60;
+const GENERAL_HS_TYPES = ['일반고', '종합고', '자율형공립고'];
+const VOCATIONAL_HS_TYPES = ['특성화고', '마이스터고'];
+
+/* 주제별 DATA 탭에 나열되는 주제 목록. render(container, years, yearLabels, cardClass) 시그니처로 통일해서
+   호출부(doTopicsSearch)가 어떤 주제든 동일하게 다룰 수 있게 한다. */
+const TOPIC_DEFS = [
+  {key:'smallSchools', label:'소규모학교 수 변화', render: renderTopicSmallSchools},
+  {key:'grade3', label:'고3 학생 수 변화', render: renderTopicGrade3},
+  {key:'grade3Projection', label:'고3 학생 수 변화 (향후 10년)', render: (container, years, yearLabels, cardClass)=>renderTopicGrade3Projection(container, cardClass)},
+  {key:'generalVocational', label:'일반고-직업계고 학생 수 변화', render: renderTopicGeneralVsVocational},
+  {key:'classStaffRatio', label:'학급당·교원 1인당 학생수 변화 추이', render: renderTopicClassStaffRatio},
+  {key:'establishment', label:'설립별 학생수 변화', render: renderTopicEstablishment},
+  {key:'genderRatio', label:'남녀 학생 비율 변화 추이', render: renderTopicGenderRatio},
+  {key:'regionGrowth', label:'지역별 학생수 증감률', render: renderTopicRegionGrowth},
+];
+
+function initTopicsView(){
+  if (TOPICS_INIT) return;
+  TOPICS_INIT = true;
+  const selectRow = document.getElementById('tp-topic-select');
+  selectRow.innerHTML = TOPIC_DEFS.map(d=>`<label class="check-item"><input type="checkbox" value="${d.key}" checked> ${d.label}</label>`).join('');
+  selectRow.addEventListener('change', doTopicsSearch);
+  document.getElementById('btn-tp-topic-select-all').addEventListener('click', ()=>{
+    selectRow.querySelectorAll('input').forEach(b=>{ b.checked = true; });
+    doTopicsSearch();
+  });
+  document.getElementById('btn-tp-topic-select-none').addEventListener('click', ()=>{
+    selectRow.querySelectorAll('input').forEach(b=>{ b.checked = false; });
+    doTopicsSearch();
+  });
+  document.getElementById('btn-tp-search').addEventListener('click', doTopicsSearch);
+  document.getElementById('btn-tp-reset').addEventListener('click', ()=>{
+    populateTopicsYearOptions(true);
+    selectRow.querySelectorAll('input').forEach(b=>{ b.checked = true; });
+    doTopicsSearch();
+  });
+}
+
+function populateTopicsYearOptions(reset){
+  const startSel = document.getElementById('tp-start-year');
+  const endSel = document.getElementById('tp-end-year');
+  const years = allKnownYears();
+  const optsHtml = years.map(y=>`<option value="${y}">${y}년</option>`).join('');
+  const prevStart = startSel.value, prevEnd = endSel.value;
+  startSel.innerHTML = optsHtml;
+  endSel.innerHTML = optsHtml;
+  const dYears = dataYears();
+  const defStart = dYears.length ? dYears[0] : years[0];
+  const defEnd = dYears.length ? dYears[dYears.length-1] : years[years.length-1];
+  if (!reset && prevStart && years.includes(Number(prevStart))) startSel.value = prevStart;
+  else startSel.value = String(defStart);
+  if (!reset && prevEnd && years.includes(Number(prevEnd))) endSel.value = prevEnd;
+  else endSel.value = String(defEnd);
+}
+
+function doTopicsSearch(){
+  const startYear = Number(document.getElementById('tp-start-year').value);
+  const endYear = Number(document.getElementById('tp-end-year').value);
+  const container = document.getElementById('tp-results');
+  const note = document.getElementById('tp-note');
+  note.hidden = true; note.textContent = '';
+  container.innerHTML = '';
+
+  if (!startYear || !endYear) { note.hidden = true; return; }
+  if (startYear > endYear) {
+    note.hidden = false; note.textContent = '시작연도는 종료연도보다 클 수 없습니다.';
+    return;
+  }
+
+  const years = [];
+  for (let y = startYear; y <= endYear; y++) years.push(y);
+  const yearLabels = years.map(y=>`${y}년`);
+  const cardClass = ycCardClass(years);
+
+  const selectedKeys = new Set([...document.querySelectorAll('#tp-topic-select input:checked')].map(b=>b.value));
+  if (!selectedKeys.size) {
+    note.hidden = false; note.textContent = '표시할 주제를 하나 이상 선택하세요.';
+    return;
+  }
+  TOPIC_DEFS.filter(d=>selectedKeys.has(d.key)).forEach(d=>d.render(container, years, yearLabels, cardClass));
+}
+
+function appendTopicChart(container, cardClass, title, subLabel, id, filename, renderFn){
+  const card = document.createElement('div'); card.className = cardClass;
+  card.innerHTML = `<h2>${title}</h2><p class="sub">${subLabel}</p><div class="chart-wrap" id="${id}"></div>`;
+  container.appendChild(card);
+  const mount = document.getElementById(id);
+  renderFn(mount);
+  appendChartDownloadRow(mount, filename);
+}
+
+/* 초/중/고 선택 체크박스가 필요하거나(needsLevelFilter), 그래프 위에 비율 요약표를 넣어야 하는(renderBody가
+   요약표 HTML을 반환) 주제 카드 공용 빌더. 체크박스를 바꾸면 카드 전체가 아니라 그 카드만 다시 그린다. */
+function appendFilterableTopicChart(container, cardClass, title, baseSubLabel, id, filename, {needsLevelFilter, renderBody}){
+  const card = document.createElement('div'); card.className = cardClass;
+  const levelFilterHtml = needsLevelFilter ? buildLevelCheckRow(id) : '';
+  card.innerHTML = `<h2>${title}</h2><p class="sub">${baseSubLabel}</p>${levelFilterHtml}<div id="${id}-ratio"></div><div class="chart-wrap" id="${id}"></div>`;
+  container.appendChild(card);
+  const mount = document.getElementById(id);
+  const ratioMount = document.getElementById(`${id}-ratio`);
+
+  function redraw(){
+    const levels = needsLevelFilter ? getCheckedLevels(id) : ['초','중','고'];
+    if (needsLevelFilter && !levels.length) {
+      mount.innerHTML = '<p class="empty">선택된 학교급이 없습니다.</p>';
+      ratioMount.innerHTML = '';
+      return;
+    }
+    const ratioHtml = renderBody(mount, levels) || '';
+    ratioMount.innerHTML = ratioHtml;
+    appendChartDownloadRow(mount, filename);
+  }
+  if (needsLevelFilter) {
+    card.querySelector(`#${id}-levels`).addEventListener('change', redraw);
+  }
+  redraw();
+}
+
+function buildLevelCheckRow(idPrefix){
+  return `<div class="check-row" id="${idPrefix}-levels" style="margin:4px 0 12px;">
+    ${['초','중','고'].map(lv=>`<label class="check-item"><input type="checkbox" value="${lv}" checked> ${LEVEL_NAMES[lv]}</label>`).join('')}
+  </div>`;
+}
+function getCheckedLevels(idPrefix){
+  return [...document.querySelectorAll(`#${idPrefix}-levels input:checked`)].map(b=>b.value);
+}
+
+/* 연도별 비율 요약표. columns: [{label, values}] (values는 years와 같은 순서의 '12.3%' 형태 문자열 배열) */
+function buildRatioSummaryTable(years, columns){
+  const head = `<tr><th>연도</th>${columns.map(c=>`<th>${c.label}</th>`).join('')}</tr>`;
+  const rows = years.map((y,i)=>`<tr><td>${y}년</td>${columns.map(c=>`<td>${c.values[i]}</td>`).join('')}</tr>`).join('');
+  return `<div class="table-wrap" style="margin-bottom:10px;"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div>`;
+}
+function pctStr(num, den){
+  return den > 0 ? `${Math.round((num/den)*1000)/10}%` : '-';
+}
+
+function renderTopicSmallSchools(container, years, yearLabels, cardClass){
+  const levelOrder = ['초','중','고'];
+  const series = levelOrder.map(lv=>({
+    name: LEVEL_NAMES[lv],
+    color: levelRepresentativeColor(lv),
+    data: years.map(y => SCHOOLS.filter(s=>s.year===y && s.level===lv && s.students.total <= SMALL_SCHOOL_THRESHOLD).length),
+    unit: '개교'
+  }));
+  const ratioColumns = [
+    {label:'전체', values: years.map(y=>{
+      const all = SCHOOLS.filter(s=>s.year===y);
+      return pctStr(all.filter(s=>s.students.total <= SMALL_SCHOOL_THRESHOLD).length, all.length);
+    })},
+    ...levelOrder.map(lv=>({label: LEVEL_NAMES[lv], values: years.map(y=>{
+      const all = SCHOOLS.filter(s=>s.year===y && s.level===lv);
+      return pctStr(all.filter(s=>s.students.total <= SMALL_SCHOOL_THRESHOLD).length, all.length);
+    })}))
+  ];
+  appendFilterableTopicChart(container, cardClass, '소규모학교 수 변화',
+    `${years[0]}년~${years[years.length-1]}년 · 전교생 ${SMALL_SCHOOL_THRESHOLD}명 이하 기준`,
+    'tp-small-schools', '소규모학교_수_변화',
+    {needsLevelFilter:false, renderBody: (mount)=>{
+      renderStackedBarYearChange(mount, {yearLabels, series, filename:'소규모학교_수_변화'});
+      return buildRatioSummaryTable(years, ratioColumns);
+    }});
+}
+
+function renderTopicGrade3(container, years, yearLabels, cardClass){
+  const series = [{
+    name: '고3 학생수',
+    data: years.map(y => SCHOOLS.filter(s=>s.year===y && s.level==='고').reduce((a,s)=>a+(s.students.g3||0),0)),
+    unit: '명'
+  }];
+  appendTopicChart(container, cardClass, '고3 학생 수 변화', `${years[0]}년~${years[years.length-1]}년`,
+    'tp-grade3', '고3_학생수_변화',
+    mount => renderStackedBarYearChange(mount, {yearLabels, series, filename:'고3_학생수_변화'}));
+}
+
+/* 현재(또는 자료가 있는 가장 최근) 연도의 학년별 학생수를 그대로 진급시켜 향후 10년간 고3 학생수를 추정한다.
+   예: 올해 초2 학생 수 = 10년 뒤 고3 학생 수 (초2→초3→...→고3, 10번 진급). 전출입·휴학 등은 고려하지 않는다. */
+function renderTopicGrade3Projection(container, cardClass){
+  const currentYear = new Date().getFullYear();
+  const dYears = dataYears();
+  const anchorYear = SCHOOLS.some(s=>s.year===currentYear) ? currentYear : (dYears.length ? dYears[dYears.length-1] : currentYear);
+  const pool = SCHOOLS.filter(s=>s.year===anchorYear);
+  const gradeTotal = idx => {
+    if (idx <= 6) return pool.filter(s=>s.level==='초').reduce((a,s)=>a+(s.students['g'+idx]||0),0);
+    if (idx <= 9) return pool.filter(s=>s.level==='중').reduce((a,s)=>a+(s.students['g'+(idx-6)]||0),0);
+    return pool.filter(s=>s.level==='고').reduce((a,s)=>a+(s.students['g'+(idx-9)]||0),0);
+  };
+  const projYears = [], data = [];
+  for (let k=0; k<=10; k++){
+    projYears.push(anchorYear+k);
+    data.push(gradeTotal(12-k));
+  }
+  const yearLabels = projYears.map(y=>`${y}년`);
+  const series = [{name:'고3 학생수(추정)', color:PALETTE[4], data, unit:'명'}];
+  appendTopicChart(container, ycCardClass(projYears), '고3 학생 수 변화 (향후 10년 추정)',
+    `${anchorYear}년 학년별 학생수 기준 · 같은 학생 집단(코호트)이 그대로 진급한다고 가정한 추정치 · 전출입·휴학 등은 반영되지 않음`,
+    'tp-grade3-projection', '고3_학생수_변화_향후10년',
+    mount => renderLine(mount, {categories:yearLabels, series, showLabels:true}));
+}
+
+function renderTopicGeneralVsVocational(container, years, yearLabels, cardClass){
+  const poolOf = (y, types) => SCHOOLS.filter(s=>s.year===y && s.level==='고' && types.includes(s.type));
+  const series = [
+    {name:'일반고 계열', color: NORD_PALETTE[5], data: years.map(y=>poolOf(y, GENERAL_HS_TYPES).reduce((a,s)=>a+s.students.total,0)), unit:'명'},
+    {name:'직업계고', color: NORD_PALETTE[0], data: years.map(y=>poolOf(y, VOCATIONAL_HS_TYPES).reduce((a,s)=>a+s.students.total,0)), unit:'명'}
+  ];
+  const hsTotal = y => SCHOOLS.filter(s=>s.year===y && s.level==='고').reduce((a,s)=>a+s.students.total,0);
+  const ratioColumns = [
+    {label:'일반고 비율', values: years.map((y,i)=>pctStr(series[0].data[i], hsTotal(y)))},
+    {label:'직업계고 비율', values: years.map((y,i)=>pctStr(series[1].data[i], hsTotal(y)))}
+  ];
+  appendFilterableTopicChart(container, cardClass, '일반고-직업계고 학생 수 변화',
+    `${years[0]}년~${years[years.length-1]}년 · 일반고=일반고/종합고/자율형공립고, 직업계고=특성화고/마이스터고(대안고 제외) · 비율은 전체 고등학생 대비`,
+    'tp-general-vocational', '일반고_직업계고_학생수_변화',
+    {needsLevelFilter:false, renderBody: (mount)=>{
+      renderStackedBarYearChange(mount, {yearLabels, series, filename:'일반고_직업계고_학생수_변화'});
+      return buildRatioSummaryTable(years, ratioColumns);
+    }});
+}
+
+/* 초/중/고를 모두 선택하면 전체 학교를 하나로 합친 값 한 쌍(학급당/교원당)을, 일부만 선택하면 선택한
+   학교급마다 따로 계산한 값 쌍을 같은 그래프 안에 학교급별 선(계열)로 나눠서 보여준다. */
+function renderTopicClassStaffRatio(container, years, yearLabels, cardClass){
+  appendFilterableTopicChart(container, cardClass, '학급당·교원 1인당 학생수 변화 추이',
+    `${years[0]}년~${years[years.length-1]}년 · 학교급을 선택하세요 (전체 선택 시 통합 값, 일부만 선택 시 학교급별 값)`,
+    'tp-class-staff-ratio', '학급당_교원당_학생수_변화',
+    {needsLevelFilter:true, renderBody: (mount, levels)=>{
+      const ratioFor = poolOf => {
+        const perClass = years.map(y=>{
+          const pool = poolOf(y);
+          const classesTotal = pool.reduce((a,s)=>a+s.classes.total,0);
+          const studentsTotal = pool.reduce((a,s)=>a+s.students.total,0);
+          return classesTotal > 0 ? Math.round((studentsTotal/classesTotal)*10)/10 : 0;
+        });
+        const perStaff = years.map(y=>{
+          const pool = poolOf(y);
+          const staffTotal = pool.reduce((a,s)=>a+s.staff,0);
+          const studentsTotal = pool.reduce((a,s)=>a+s.students.total,0);
+          return staffTotal > 0 ? Math.round((studentsTotal/staffTotal)*10)/10 : 0;
+        });
+        return {perClass, perStaff};
+      };
+
+      let series;
+      if (levels.length === 3) {
+        const {perClass, perStaff} = ratioFor(y => SCHOOLS.filter(s=>s.year===y));
+        series = [
+          {name:'학급당 학생수', color:PALETTE[0], data:perClass, unit:'명'},
+          {name:'교원 1인당 학생수', color:PALETTE[4], data:perStaff, unit:'명'}
+        ];
+      } else {
+        series = [];
+        levels.forEach(lv=>{
+          const shades = gradeFamilyShades(lv, 2);
+          const {perClass, perStaff} = ratioFor(y => SCHOOLS.filter(s=>s.year===y && s.level===lv));
+          series.push({name:`${LEVEL_NAMES[lv]} 학급당 학생수`, color:shades[0], data:perClass, unit:'명'});
+          series.push({name:`${LEVEL_NAMES[lv]} 교원 1인당 학생수`, color:shades[1], data:perStaff, unit:'명'});
+        });
+      }
+      renderLine(mount, {categories:yearLabels, series, showLabels:true});
+      return '';
+    }});
+}
+
+function renderTopicEstablishment(container, years, yearLabels, cardClass){
+  appendFilterableTopicChart(container, cardClass, '설립별(국립·공립·사립) 학생수 변화',
+    `${years[0]}년~${years[years.length-1]}년 · 학교급을 선택하세요 (기본값: 전체)`,
+    'tp-establishment', '설립별_학생수_변화',
+    {needsLevelFilter:true, renderBody: (mount, levels)=>{
+      const estTypes = ['국립','공립','사립'];
+      const colors = [NORD_PALETTE[7], NORD_PALETTE[5], NORD_PALETTE[1]];
+      const poolOf = (y, est) => SCHOOLS.filter(s=>s.year===y && levels.includes(s.level) && s.est===est);
+      const series = estTypes.map((est,i)=>({
+        name: est, color: colors[i],
+        data: years.map(y=>poolOf(y, est).reduce((a,s)=>a+s.students.total,0)),
+        unit:'명'
+      }));
+      renderStackedBarYearChange(mount, {yearLabels, series, filename:'설립별_학생수_변화'});
+      const levelTotal = y => SCHOOLS.filter(s=>s.year===y && levels.includes(s.level)).reduce((a,s)=>a+s.students.total,0);
+      const ratioColumns = estTypes.map((est,i)=>({
+        label: est+' 비율',
+        values: years.map((y,yi)=>pctStr(series[i].data[yi], levelTotal(y)))
+      }));
+      return buildRatioSummaryTable(years, ratioColumns);
+    }});
+}
+
+function renderTopicGenderRatio(container, years, yearLabels, cardClass){
+  appendFilterableTopicChart(container, cardClass, '남녀 학생 비율 변화 추이',
+    `${years[0]}년~${years[years.length-1]}년 · 학교급을 선택하세요 (기본값: 전체)`,
+    'tp-gender-ratio', '남녀_학생_비율_변화',
+    {needsLevelFilter:true, renderBody: (mount, levels)=>{
+      const poolOf = y => SCHOOLS.filter(s=>s.year===y && levels.includes(s.level));
+      const series = [
+        {name:'남학생', color: NORD_PALETTE[7], data: years.map(y=>poolOf(y).reduce((a,s)=>a+(s.students.male||0),0)), unit:'명'},
+        {name:'여학생', color: NORD_PALETTE[8], data: years.map(y=>poolOf(y).reduce((a,s)=>a+(s.students.female||0),0)), unit:'명'}
+      ];
+      renderStackedBarYearChange(mount, {yearLabels, series, filename:'남녀_학생_비율_변화'});
+      return '';
+    }});
+}
+
+function renderTopicRegionGrowth(container, years, yearLabels, cardClass){
+  const startYear = years[0], endYear = years[years.length-1];
+  appendFilterableTopicChart(container, cardClass, '지역별 학생수 증감률',
+    `${startYear}년 대비 ${endYear}년 · 시군별 · 학교급을 선택하세요 (기본값: 전체)`,
+    'tp-region-growth', '지역별_학생수_증감률',
+    {needsLevelFilter:true, renderBody: (mount, levels)=>{
+      const studentsOf = (y, region) => SCHOOLS.filter(s=>s.year===y && s.region===region && levels.includes(s.level)).reduce((a,s)=>a+s.students.total,0);
+      const rates = REGION_ORDER.map(r=>{
+        const startCount = studentsOf(startYear, r);
+        const endCount = studentsOf(endYear, r);
+        if (!startCount) return 0;
+        return Math.round(((endCount-startCount)/startCount)*1000)/10;
+      });
+      renderDivergingBar(mount, {
+        categories: REGION_ORDER.map(shortRegion), data: rates, unit: '%',
+        positiveColor: NORD_PALETTE[3], negativeColor: NORD_PALETTE[0]
+      });
+      return '';
+    }});
+}
+
 /* 다각형(레이더) 그래프에서 연도별 선(폴리곤) 색상은 서로 뚜렷이 구분되도록 대비가 큰 색상만 모아서 사용한다. */
 const RADAR_YEAR_COLORS = ['#dc2626','#2563eb','#16a34a','#f59e0b','#7c3aed','#0891b2','#db2777','#65a30d','#4338ca','#b45309'];
 
@@ -2758,6 +3487,65 @@ function gradeFamilyShades(lv, count){
 /* 초/중/고 대표 색상(누적 막대그래프에서 학교급 3개 구간을 나타낼 때 사용). */
 function levelRepresentativeColor(lv){
   return hslToHex(LEVEL_HUE[lv], LEVEL_SAT[lv], 56);
+}
+
+/* 그룹(예: 학교급)별로 막대를 하나씩 나누고, 같은 그룹 안에서만 구간(예: 학년)을 누적해서 쌓는 막대그래프.
+   renderStackedBarYearChange와 달리 그룹마다 구간 구성이 달라질 수 있어(학교급마다 학년 수가 다름) 그룹 사이를
+   잇는 점선이나 공통 왼쪽 라벨은 그리지 않고, 대신 전체 구간을 모아 범례로 보여준다. */
+function renderGroupedStackedBar(container, {groups, filename}){
+  container.innerHTML = '';
+  const n = groups.length || 1;
+  const W = Math.max(360, n * 170);
+  const H = 340;
+  const marginL = 60, marginR = 20, marginT = 34, marginB = 42;
+  const plotW = W - marginL - marginR, plotH = H - marginT - marginB;
+  const totals = groups.map(g => g.segments.reduce((a,s)=>a+(s.value||0),0));
+  const maxVal = Math.max(1, ...totals) * 1.15;
+  const svg = el('svg', {viewBox:`0 0 ${W} ${H}`, width:'100%', preserveAspectRatio:'xMidYMid meet'});
+  svg.classList.add('chart-svg');
+
+  const ticks = 5;
+  for (let i=0;i<=ticks;i++){
+    const v = maxVal*i/ticks;
+    const y = marginT + plotH - (v/maxVal)*plotH;
+    svg.appendChild(el('line',{x1:marginL,x2:W-marginR,y1:y,y2:y,class:'gridline'}));
+    const t = el('text',{x:marginL-8,y:y+4,'text-anchor':'end',class:'axis-label'});
+    t.textContent = Math.round(v).toLocaleString();
+    svg.appendChild(t);
+  }
+  svg.appendChild(el('line',{x1:marginL,x2:W-marginR,y1:marginT+plotH,y2:marginT+plotH,class:'axis-line'}));
+
+  const groupW = plotW / n;
+  const barW = Math.min(90, groupW * 0.5);
+  const legendSegments = [];
+
+  groups.forEach((g, gi) => {
+    const gx = marginL + gi*groupW + groupW/2;
+    const bx = gx - barW/2;
+    let acc = 0;
+    g.segments.forEach(s => {
+      const v = s.value || 0;
+      const segH = (v/maxVal)*plotH;
+      const y1 = (marginT+plotH) - (acc/maxVal)*plotH - segH;
+      const rect = el('rect', {x:bx, y:y1, width:barW, height:Math.max(segH,0), fill:s.color, rx:2});
+      rect.addEventListener('mousemove',(e)=>showTooltip(e, `<strong>${g.label} · ${s.name}</strong><br>${v.toLocaleString()}${s.unit||''}`));
+      rect.addEventListener('mouseleave', hideTooltip);
+      svg.appendChild(rect);
+      acc += v;
+      legendSegments.push(s);
+    });
+    const totalY = (marginT+plotH) - (totals[gi]/maxVal)*plotH - 8;
+    const totalLbl = el('text', {x:gx, y:totalY, 'text-anchor':'middle', class:'bar-value'});
+    totalLbl.textContent = totals[gi].toLocaleString();
+    svg.appendChild(totalLbl);
+
+    const xt = el('text',{x:gx, y:marginT+plotH+18, 'text-anchor':'middle', class:'x-label'});
+    xt.textContent = g.label;
+    svg.appendChild(xt);
+  });
+
+  container.appendChild(svg);
+  container.appendChild(buildLegend(legendSegments));
 }
 
 /* 연도별 변화를 누적 막대그래프로 표시. 막대 안에서는 series[0]이 가장 아래, series[마지막]이 가장 위에 쌓인다.
@@ -2912,8 +3700,6 @@ function renderYearChangeFiltered(container, years, region, level){
   const cardClass = ycCardClass(years);
   const poolOf = y => SCHOOLS.filter(s => s.year===y && s.level===level && (!region || s.region===region));
   const schoolCounts = years.map(y=>poolOf(y).length);
-  const classCounts = years.map(y=>poolOf(y).reduce((a,s)=>a+s.classes.total,0));
-  const studentCounts = years.map(y=>poolOf(y).reduce((a,s)=>a+s.students.total,0));
 
   if (!schoolCounts.some(v=>v>0)) {
     const note = document.createElement('div'); note.className='card wide';
@@ -2922,13 +3708,26 @@ function renderYearChangeFiltered(container, years, region, level){
     return;
   }
 
-  appendYcChart(container, cardClass, `${label} 학교 수 변화`, subLabel, yearLabels, [{name:'학교수', color:PALETTE[0], data:schoolCounts, unit:'개교'}], `${regionLabel}_${levelLabel}_연도별_학교수_변화`, 'yc-f-chart-schools', 'schools');
-  appendYcChart(container, cardClass, `${label} 학급 수 변화`, subLabel, yearLabels, [{name:'학급수', color:PALETTE[1], data:classCounts, unit:'개'}], `${regionLabel}_${levelLabel}_연도별_학급수_변화`, 'yc-f-chart-classes', 'classes');
-  appendYcChart(container, cardClass, `${label} 학생 수 변화`, subLabel, yearLabels, [{name:'학생수', color:PALETTE[3], data:studentCounts, unit:'명'}], `${regionLabel}_${levelLabel}_연도별_학생수_변화`, 'yc-f-chart-students', 'students');
+  if (level === '고') {
+    const types = [...new Set(years.flatMap(y=>poolOf(y).map(s=>s.type).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'ko'));
+    const typeSeries = types.length
+      ? types.map(t=>({name:t, data: years.map(y=>poolOf(y).filter(s=>s.type===t).length), unit:'개교'}))
+      : [{name:'학교수', color:PALETTE[0], data:schoolCounts, unit:'개교'}];
+    appendYcChart(container, cardClass, `${label} 학교유형별 학교 수 변화`, subLabel, yearLabels, typeSeries, `${regionLabel}_${levelLabel}_연도별_학교유형별_학교수_변화`, 'yc-f-chart-schools', 'schools');
+  } else {
+    appendYcChart(container, cardClass, `${label} 학교 수 변화`, subLabel, yearLabels, [{name:'학교수', color:PALETTE[0], data:schoolCounts, unit:'개교'}], `${regionLabel}_${levelLabel}_연도별_학교수_변화`, 'yc-f-chart-schools', 'schools');
+  }
 
   const gradeCount = GRADE_COUNT[level];
   const gradeLabels = Array.from({length:gradeCount},(_,i)=>`${i+1}학년`);
   const gradeShades = gradeFamilyShades(level, gradeCount);
+  const classSeries = gradeLabels.map((lbl,i)=>({
+    name: lbl, color: gradeShades[i],
+    data: years.map(y=>poolOf(y).reduce((a,s)=>a+(s.classes['g'+(i+1)]||0),0)),
+    unit: '개'
+  }));
+  appendYcChart(container, cardClass, `${label} 학년별 학급 수 변화`, subLabel, yearLabels, classSeries, `${regionLabel}_${levelLabel}_연도별_학년별_학급수_변화`, 'yc-f-chart-classes', 'grades');
+
   const gradeSeries = gradeLabels.map((lbl,i)=>({
     name: lbl, color: gradeShades[i],
     data: years.map(y=>poolOf(y).reduce((a,s)=>a+(s.students['g'+(i+1)]||0),0)),
@@ -2938,7 +3737,7 @@ function renderYearChangeFiltered(container, years, region, level){
 }
 
 function renderYearChangeSchoolDetail(container, note, years, region, level, name){
-  let candidates = SCHOOLS.filter(s => s.name === name || s.name.includes(name));
+  let candidates = SCHOOLS.filter(s => schoolNameMatches(s.name, name));
   if (region) candidates = candidates.filter(s=>s.region===region);
   if (level) candidates = candidates.filter(s=>s.level===level);
   if (!candidates.length) {
@@ -2994,6 +3793,11 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
       initYearChangeView();
       populateYearChangeYearOptions();
       doYearChangeSearch();
+    } else if (btn.dataset.view === 'topics') {
+      document.getElementById('view-topics').classList.add('active');
+      initTopicsView();
+      populateTopicsYearOptions();
+      doTopicsSearch();
     } else {
       document.getElementById('view-'+btn.dataset.view).classList.add('active');
     }

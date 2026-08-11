@@ -133,6 +133,12 @@ def extract_neis_records(rows, file_name, warnings):
     level_col_idx = find_header_index(header, lambda h: h == "학교급")
     staff_idx = find_header_index(header, lambda h: h.startswith("교직원수_교원_계"))
     code_idx = find_header_index(header, lambda h: h == "학교코드")
+    # 학교급마다 전체 학생수(남/여) 칸 이름이 다르다 (고: "학생수_합계_계_남", 초/중: "학생수_계_남").
+    # 학년별 칸("...1학년_남")이나 주/야간 세부 칸("...주간_남")과 헷갈리지 않도록 걸러낸다.
+    male_total_idx = find_header_index(
+        header, lambda h: h.startswith("학생수") and h.endswith("_남") and "학년" not in h and "주간" not in h and "야간" not in h)
+    female_total_idx = find_header_index(
+        header, lambda h: h.startswith("학생수") and h.endswith("_여") and "학년" not in h and "주간" not in h and "야간" not in h)
     grade_class_idx, grade_student_idx = [], []
     for g in range(1, 7):
         grade_class_idx.append(find_header_index(
@@ -182,6 +188,8 @@ def extract_neis_records(rows, file_name, warnings):
                 students[f"g{g}"] = s
         classes["total"] = sum(classes[f"g{g}"] for g in range(1, 7))
         students["total"] = sum(students[f"g{g}"] for g in range(1, 7))
+        students["male"] = to_number(r[male_total_idx]) if male_total_idx != -1 and male_total_idx < len(r) else 0
+        students["female"] = to_number(r[female_total_idx]) if female_total_idx != -1 and female_total_idx < len(r) else 0
 
         records.append({
             "region": region, "est": est, "name": name, "code": code,
