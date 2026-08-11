@@ -3424,7 +3424,8 @@ function renderTopicGenderRatio(container, years, yearLabels, cardClass){
 
 function renderTopicRegionGrowth(container, years, yearLabels, cardClass){
   const startYear = years[0], endYear = years[years.length-1];
-  appendFilterableTopicChart(container, cardClass, '지역별 학생수 증감률',
+  /* 시군 18곳을 한 줄에 표시해야 해서, 선택한 연도 범위와 무관하게 항상 가로폭을 넓게(card wide) 사용한다. */
+  appendFilterableTopicChart(container, 'card wide', '지역별 학생수 증감률',
     `${startYear}년 대비 ${endYear}년 · 시군별 · 학교급을 선택하세요 (기본값: 전체)`,
     'tp-region-growth', '지역별_학생수_증감률',
     {needsLevelFilter:true, renderBody: (mount, levels)=>{
