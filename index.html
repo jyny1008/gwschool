@@ -2725,17 +2725,50 @@ function appendYcChart(container, cardClass, title, subLabel, yearLabels, series
   appendChartDownloadRow(mount, filename);
 }
 
-/* Nord(Northern-themed) 색상 팔레트: 연도별 변화 누적 막대그래프 구간 색상 전용으로 사용한다. */
+/* Nord(Northern-themed) 색상 팔레트: 연도별 변화 누적 막대그래프에서 구간 색상이 지정되지 않았을 때의 기본값으로 사용한다. */
 const NORD_PALETTE = ['#BF616A','#D08770','#EBCB8B','#A3BE8C','#8FBCBB','#88C0D0','#81A1C1','#5E81AC','#B48EAD'];
+
+/* 학교급별로 서로 구분되는 Nord 계열 색상군(색상은 같은 계열, 채도/명도만 학년에 따라 조절).
+   초등학교=프로스트 블루, 중학교=오로라 그린, 고등학교=오로라 레드 계열로 서로 다른 색상을 사용해
+   학교급끼리 비슷한 색이 되지 않게 하고, 같은 학교급 안에서는 학년이 올라갈수록 진하게 표시한다. */
+const LEVEL_HUE = {'초':193, '중':92, '고':355};
+const LEVEL_SAT = {'초':46, '중':34, '고':50};
+
+function hslToHex(h, s, l){
+  s/=100; l/=100;
+  const k = n => (n + h/30) % 12;
+  const a = s * Math.min(l, 1-l);
+  const f = n => l - a*Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n),1)));
+  const toHex = x => Math.round(255*x).toString(16).padStart(2,'0');
+  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+}
+
+/* 학교급(lv)의 학년 수(count)만큼, 학년이 올라갈수록 점점 진해지는(명도가 낮아지는) 같은 계열 색상 목록을 만든다. */
+function gradeFamilyShades(lv, count){
+  const hue = LEVEL_HUE[lv], sat = LEVEL_SAT[lv];
+  if (count <= 1) return [hslToHex(hue, sat, 52)];
+  const lStart = 78, lEnd = 34;
+  const arr = [];
+  for (let i=0;i<count;i++){
+    arr.push(hslToHex(hue, sat, lStart + (lEnd-lStart)*(i/(count-1))));
+  }
+  return arr;
+}
+
+/* 초/중/고 대표 색상(누적 막대그래프에서 학교급 3개 구간을 나타낼 때 사용). */
+function levelRepresentativeColor(lv){
+  return hslToHex(LEVEL_HUE[lv], LEVEL_SAT[lv], 56);
+}
 
 /* 연도별 변화를 누적 막대그래프로 표시. 막대 안에서는 series[0]이 가장 아래, series[마지막]이 가장 위에 쌓인다.
    막대 위에는 그 해의 전체 합계를 표시하고, 인접한 두 연도의 막대 사이는 같은 구간의 경계선끼리 매우 가는 점선으로
    연결해 구간별 흐름을 보여준다. 가장 왼쪽(가장 오래된 연도) 막대에는 각 구간의 이름을 왼쪽에 표시한다.
-   구간 색상은 Nord 팔레트를 사용한다(전달된 series의 color는 다각형/선그래프용이므로 여기서는 덮어쓴다). */
+   구간 색상은 전달된 series의 color를 그대로 사용하고(학교급별 대표색, 학년별 색상군 등 호출부에서 지정),
+   color가 없는 경우에만 Nord 팔레트를 기본값으로 사용한다. */
 function renderStackedBarYearChange(container, {yearLabels, series, filename}){
   container.innerHTML = '';
   const n = yearLabels.length || 1;
-  const cs = series.map((s,i)=>Object.assign({}, s, {color: NORD_PALETTE[i % NORD_PALETTE.length]}));
+  const cs = series.map((s,i)=>Object.assign({}, s, {color: s.color || NORD_PALETTE[i % NORD_PALETTE.length]}));
   const W = Math.max(560, n * 110);
   const H = 340;
   const marginL = 92, marginR = 20, marginT = 34, marginB = 42;
@@ -2835,7 +2868,7 @@ function renderYearChangeMultiLevel(container, years, region){
   const subLabel = `${years[0]}년~${years[years.length-1]}년`;
   const cardClass = ycCardClass(years);
   const levelOrder = ['초','중','고'];
-  const levelColors = {'초':PALETTE[2], '중':PALETTE[0], '고':PALETTE[3]};
+  const levelColors = {'초':levelRepresentativeColor('초'), '중':levelRepresentativeColor('중'), '고':levelRepresentativeColor('고')};
   const poolOf = (y, lv) => SCHOOLS.filter(s => s.year===y && s.level===lv && (!region || s.region===region));
 
   const hasAnyData = years.some(y => levelOrder.some(lv => poolOf(y, lv).length > 0));
@@ -2857,10 +2890,11 @@ function renderYearChangeMultiLevel(container, years, region){
 
   const gradeSeries = [];
   levelOrder.forEach(lv=>{
+    const shades = gradeFamilyShades(lv, GRADE_COUNT[lv]);
     for (let g=1; g<=GRADE_COUNT[lv]; g++){
       gradeSeries.push({
         name: `${LEVEL_NAMES[lv][0]}${g}`,
-        color: PALETTE[gradeSeries.length % PALETTE.length],
+        color: shades[g-1],
         data: years.map(y => poolOf(y, lv).reduce((a,s)=>a+(s.students['g'+g]||0),0)),
         unit: '명'
       });
@@ -2894,8 +2928,9 @@ function renderYearChangeFiltered(container, years, region, level){
 
   const gradeCount = GRADE_COUNT[level];
   const gradeLabels = Array.from({length:gradeCount},(_,i)=>`${i+1}학년`);
+  const gradeShades = gradeFamilyShades(level, gradeCount);
   const gradeSeries = gradeLabels.map((lbl,i)=>({
-    name: lbl, color: PALETTE[i % PALETTE.length],
+    name: lbl, color: gradeShades[i],
     data: years.map(y=>poolOf(y).reduce((a,s)=>a+(s.students['g'+(i+1)]||0),0)),
     unit: '명'
   }));
@@ -2924,13 +2959,14 @@ function renderYearChangeSchoolDetail(container, note, years, region, level, nam
   const missingYears = years.filter(y=>!recordsByYear[y]);
 
   const gradeLabels = Array.from({length:gradeCount},(_,i)=>`${i+1}학년`);
+  const detailShades = gradeFamilyShades(targetLevel, gradeCount);
   const classSeries = gradeLabels.map((lbl,i)=>({
-    name: lbl, color: PALETTE[i % PALETTE.length],
+    name: lbl, color: detailShades[i],
     data: years.map(y=> recordsByYear[y] ? (recordsByYear[y].classes['g'+(i+1)]||0) : 0),
     unit: '개'
   }));
   const studentSeries = gradeLabels.map((lbl,i)=>({
-    name: lbl, color: PALETTE[i % PALETTE.length],
+    name: lbl, color: detailShades[i],
     data: years.map(y=> recordsByYear[y] ? (recordsByYear[y].students['g'+(i+1)]||0) : 0),
     unit: '명'
   }));
