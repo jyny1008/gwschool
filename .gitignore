@@ -1,0 +1,4 @@
+# Raw GIS/population source inputs (large, used only by scripts/build_geo.py).
+# The derived, Gangwon-only output is committed at geo/geo_data.json instead.
+/gis_data/
+/pop_data/

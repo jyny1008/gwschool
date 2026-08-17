@@ -90,6 +90,25 @@ th{background:#f9fafb;position:sticky;top:0;}
 .admin-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;align-items:center;margin-bottom:6px;}
 .error{color:var(--danger);font-size:13px;}
 .admin-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;}
+.geo-map-wrap{position:relative;width:100%;max-width:900px;margin:0 auto;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#f4f1ea;}
+.geo-svg{width:100%;height:auto;display:block;}
+.geo-sigungu{fill:#f4f1ea;stroke:#8a8578;stroke-width:1;cursor:pointer;transition:filter .1s;}
+.geo-sigungu:hover{filter:brightness(0.93);}
+.geo-sigungu.no-click{cursor:default;}
+.geo-emd{fill:#f4f1ea;stroke:#8a8578;stroke-width:.8;}
+.geo-sig-label{fill:#3f3b32;font-size:11px;font-weight:700;text-anchor:middle;dominant-baseline:middle;paint-order:stroke;stroke:#f4f1ea;stroke-width:3px;stroke-linejoin:round;pointer-events:none;}
+.geo-school-dot{stroke:#ffffff;stroke-width:.9;opacity:.92;pointer-events:none;}
+.geo-school-dot.is-hover{opacity:1;stroke:#222;stroke-width:1.6;}
+.geo-school-hit{fill:transparent;stroke:none;pointer-events:all;cursor:pointer;}
+.geo-legend-panel{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.94);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.geo-legend-panel .legend-item i{border-radius:50%;}
+.geo-choropleth-legend{display:flex;flex-wrap:wrap;gap:0;margin-top:10px;font-size:12px;}
+.geo-choropleth-legend .tier{display:flex;flex-direction:column;align-items:center;flex:1;min-width:90px;}
+.geo-choropleth-legend .swatch{width:100%;height:16px;}
+.geo-choropleth-legend .range{margin-top:4px;color:var(--sub);font-size:11px;text-align:center;}
+.geo-color-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px;}
+.geo-color-item{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--sub);}
+.geo-color-item input[type="color"]{width:44px;height:32px;padding:2px;border:1px solid var(--border);border-radius:6px;cursor:pointer;}
 @media (max-width:600px){ .topbar h1{font-size:18px;} main{padding:14px;} }
 </style>
 </head>
@@ -104,6 +123,7 @@ th{background:#f9fafb;position:sticky;top:0;}
     <button class="tab-btn" data-view="level" data-level="고">고등학교</button>
     <button class="tab-btn" data-view="yearchange">연도별 변화</button>
     <button class="tab-btn" data-view="topics">주제별 DATA</button>
+    <button class="tab-btn" data-view="geo">GEO DATA</button>
   </nav>
   <button class="tab-btn admin-link-btn" data-view="admin">관리자</button>
 </header>
@@ -271,6 +291,58 @@ th{background:#f9fafb;position:sticky;top:0;}
     <div id="tp-results" class="chart-grid"></div>
   </section>
 
+  <section id="view-geo" class="view">
+    <div class="card wide" style="margin-bottom:20px;">
+      <div class="type-toolbar" style="margin-bottom:8px;">
+        <div>
+          <h2>강원 지역 학교 분포 지도</h2>
+          <p class="sub">시군에 마우스를 올리면 인구·인구밀도가, 클릭하면 그 시군의 읍면동 경계 지도로 이동합니다. 학교 점에 마우스를 올리면 상세정보가 표시됩니다.</p>
+        </div>
+      </div>
+      <div class="filter-bar" style="margin-bottom:10px;">
+        <div class="filter-item">
+          <label for="geo-a-year">기준연도</label>
+          <select id="geo-a-year"></select>
+        </div>
+        <div class="filter-item grow">
+          <label>학교급</label>
+          <div id="geo-a-levels" class="check-row" style="margin-bottom:0;"></div>
+        </div>
+        <div class="filter-item">
+          <label for="geo-a-dotsize">점 크기 (<span id="geo-a-dotsize-label">1.0x</span>)</label>
+          <input type="range" id="geo-a-dotsize" min="0.5" max="2.5" step="0.1" value="1" style="width:140px;">
+        </div>
+        <div class="filter-item" id="geo-a-back-wrap" hidden>
+          <label>&nbsp;</label>
+          <button id="geo-a-back" class="btn">전체 지도로</button>
+        </div>
+      </div>
+      <p id="geo-a-caption" class="sub" style="margin:0 0 8px;"></p>
+      <div id="geo-a-map" class="geo-map-wrap"></div>
+    </div>
+
+    <div class="card wide">
+      <div class="type-toolbar" style="margin-bottom:8px;">
+        <div>
+          <h2>강원 지역 시군별 인구 현황 지도</h2>
+          <p class="sub">시군별 총인구를 단계구분도로 표시합니다. 마우스를 올리면 연령대별 인구를 볼 수 있습니다. 단계 수·구분기준·색상·배경색은 관리자 페이지에서 바꿀 수 있습니다.</p>
+        </div>
+      </div>
+      <div class="filter-bar" style="margin-bottom:10px;">
+        <div class="filter-item">
+          <label for="geo-b-year">기준연도</label>
+          <select id="geo-b-year"></select>
+        </div>
+      </div>
+      <div id="geo-b-map" class="geo-map-wrap"></div>
+      <div id="geo-b-legend" class="geo-choropleth-legend"></div>
+
+      <h3 style="margin:24px 0 4px;font-size:15px;">시군별 인구 그래프</h3>
+      <p class="sub" style="margin:0 0 12px;">유소년·청장년·노년 인구를 누적 막대그래프로 표시합니다. 막대 맨 위 숫자는 총인구수입니다.</p>
+      <div id="geo-b-bar-chart" class="chart-wrap"></div>
+    </div>
+  </section>
+
   <section id="view-admin" class="view">
      <div id="admin-login" class="card narrow">
         <h2>관리자 로그인</h2>
@@ -319,13 +391,32 @@ function loadSchools(){
 function saveSchools(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
 let SCHOOLS = [];
 
+const GEO_DEFAULT_COLORS = ['#dbeafe','#93c5fd','#3b82f6','#1d4ed8','#1e3a8a','#172554','#0f172a'];
+function geoHexLerp(a, b, t){
+  const pa = [1,3,5].map(i=>parseInt(a.slice(i,i+2),16));
+  const pb = [1,3,5].map(i=>parseInt(b.slice(i,i+2),16));
+  const rgb = pa.map((v,i)=>Math.round(v + (pb[i]-v)*t));
+  return '#' + rgb.map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+function defaultGeoColors(n){
+  // GEO_DEFAULT_COLORS를 연속된 그라데이션으로 보고, n단계를 균등한 위치에서 보간해
+  // 몇 단계를 고르든 밝은 색~어두운 색이 겹치지 않고 고르게 걸치게 한다.
+  if (n === 1) return [GEO_DEFAULT_COLORS[GEO_DEFAULT_COLORS.length-1]];
+  const stops = GEO_DEFAULT_COLORS.length - 1;
+  return Array.from({length:n}, (_,i)=>{
+    const pos = i / (n-1) * stops;
+    const lo = Math.floor(pos), hi = Math.min(stops, lo+1);
+    return geoHexLerp(GEO_DEFAULT_COLORS[lo], GEO_DEFAULT_COLORS[hi], pos-lo);
+  });
+}
+
 function loadSettings(){
-  const def = {chartType:'bar', sections:{region:true, grade:true}, chartTypes:{homeRegion:'line', homeGrade:'bar', homeRank:'bar'}, extraYears:[], defaultYear:null, ycChartTypes:{schools:'stackedBar', classes:'stackedBar', students:'stackedBar', grades:'stackedBar'}};
+  const def = {chartType:'bar', sections:{region:true, grade:true}, chartTypes:{homeRegion:'line', homeGrade:'bar', homeRank:'bar'}, extraYears:[], defaultYear:null, ycChartTypes:{schools:'stackedBar', classes:'stackedBar', students:'stackedBar', grades:'stackedBar'}, geoMap:{tierCount:5, method:'equal', colors:defaultGeoColors(5), bgColor:'#f4f1ea'}};
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return Object.assign(def, parsed, {chartTypes: Object.assign({}, def.chartTypes, parsed.chartTypes), ycChartTypes: Object.assign({}, def.ycChartTypes, parsed.ycChartTypes), extraYears: parsed.extraYears || []});
+      return Object.assign(def, parsed, {chartTypes: Object.assign({}, def.chartTypes, parsed.chartTypes), ycChartTypes: Object.assign({}, def.ycChartTypes, parsed.ycChartTypes), extraYears: parsed.extraYears || [], geoMap: Object.assign({}, def.geoMap, parsed.geoMap)});
     }
   } catch(e) {}
   return def;
@@ -2691,6 +2782,31 @@ function renderAdminPanel(){
       </div>
     </div>
     <div class="card">
+      <h2>지도 설정 (GEO DATA)</h2>
+      <p class="sub">GEO DATA 탭 지도의 배경색과, "시군별 인구 현황 지도"의 단계 수·구분 기준·색상을 설정합니다.</p>
+      <div class="admin-form" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:12px;">
+        <div class="filter-item">
+          <label for="opt-geo-bg-color">지도 배경색</label>
+          <input type="color" id="opt-geo-bg-color" value="${SETTINGS.geoMap.bgColor}" style="width:60px;height:32px;padding:2px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
+        </div>
+        <div class="filter-item">
+          <label for="opt-geo-tier-count">인구지도 단계 수</label>
+          <select id="opt-geo-tier-count">
+            ${[3,4,5,6,7].map(n=>`<option value="${n}" ${SETTINGS.geoMap.tierCount===n?'selected':''}>${n}단계</option>`).join('')}
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="opt-geo-method">단계구분 기준</label>
+          <select id="opt-geo-method">
+            <option value="equal" ${SETTINGS.geoMap.method==='equal'?'selected':''}>등간구분 (동일 간격)</option>
+            <option value="quantile" ${SETTINGS.geoMap.method==='quantile'?'selected':''}>분위수 (시군 개수 균등)</option>
+          </select>
+        </div>
+      </div>
+      <div id="geo-color-row" class="geo-color-row"></div>
+      <button id="btn-geo-color-reset" class="btn small">기본 팔레트로 초기화</button>
+    </div>
+    <div class="card">
       <h2>백업 / 계정</h2>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;">
         <button id="btn-export" class="btn">JSON으로 내보내기</button>
@@ -2816,9 +2932,50 @@ function renderAdminPanel(){
     document.getElementById('admin-pw').value = '';
     document.getElementById('admin-login-err').hidden = true;
   });
+  document.getElementById('opt-geo-bg-color').addEventListener('input', e=>{
+    SETTINGS.geoMap.bgColor = e.target.value;
+    saveSettings(SETTINGS);
+    if (GEO_INIT) { renderGeoA(); renderGeoB(); }
+  });
+  document.getElementById('opt-geo-tier-count').addEventListener('change', e=>{
+    const n = Number(e.target.value);
+    SETTINGS.geoMap.tierCount = n;
+    SETTINGS.geoMap.colors = defaultGeoColors(n);
+    saveSettings(SETTINGS);
+    renderGeoColorRow();
+    if (GEO_INIT) renderGeoB();
+  });
+  document.getElementById('opt-geo-method').addEventListener('change', e=>{
+    SETTINGS.geoMap.method = e.target.value;
+    saveSettings(SETTINGS);
+    if (GEO_INIT) renderGeoB();
+  });
+  document.getElementById('btn-geo-color-reset').addEventListener('click', ()=>{
+    SETTINGS.geoMap.colors = defaultGeoColors(SETTINGS.geoMap.tierCount);
+    saveSettings(SETTINGS);
+    renderGeoColorRow();
+    if (GEO_INIT) renderGeoB();
+  });
+  renderGeoColorRow();
   renderAdminTable();
   renderYearAdminUI();
   toggleSectionVisibility();
+}
+
+function renderGeoColorRow(){
+  const row = document.getElementById('geo-color-row');
+  if (!row) return;
+  row.innerHTML = SETTINGS.geoMap.colors.map((c,i)=>
+    `<div class="geo-color-item"><input type="color" data-idx="${i}" value="${c}"><span>${i+1}단계</span></div>`
+  ).join('');
+  row.querySelectorAll('input[type=color]').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const idx = Number(e.target.dataset.idx);
+      SETTINGS.geoMap.colors[idx] = e.target.value;
+      saveSettings(SETTINGS);
+      if (GEO_INIT) renderGeoB();
+    });
+  });
 }
 
 function allKnownYears(){
@@ -3033,7 +3190,7 @@ async function downloadOfflineHTML(){
     const res = await fetch(document.location.href, {cache:'no-store'});
     if (!res.ok) throw new Error('HTTP ' + res.status);
     let html = await res.text();
-    const dataScript = `<script>window.__EMBEDDED_SCHOOLS__ = ${JSON.stringify(SCHOOLS)};<\/script>\n`;
+    const dataScript = `<script>window.__EMBEDDED_SCHOOLS__ = ${JSON.stringify(SCHOOLS)};window.__EMBEDDED_GEO__ = ${JSON.stringify(GEO_DATA)};<\/script>\n`;
     html = html.includes('</head>') ? html.replace('</head>', dataScript + '</head>') : dataScript + html;
     triggerDownload('강원도_학교현황_오프라인.html', html, 'text/html;charset=utf-8;');
     if (statusEl) {
@@ -3824,6 +3981,361 @@ function renderYearChangeSchoolDetail(container, note, years, region, level, nam
   appendYcChart(container, cardClass, `${targetName} 학년별 학생수 변화`, subLabel, yearLabels, studentSeries, `${targetName}_연도별_학년별_학생수_변화`, 'yc-s-chart-students', 'grades');
 }
 
+/* ---------- GEO DATA ---------- */
+let GEO_DATA = null;
+let GEO_INIT = false;
+let geoASelectedSig = null;
+let geoADotScale = 1;
+const geoALevels = {'초':true, '중':true, '고':true};
+const GEO_LEVEL_COLORS = {'초':'#22c55e', '중':'#f59e0b', '고':'#2563eb'};
+const GEO_TYPE_FALLBACK_COLOR = '#9ca3af';
+/* 해당 연도에 실제로 존재하는 고등학교 유형들만 모아 팔레트 색을 배정한다 (일반고/자율형공립고/마이스터고 등, 유형 종류는 연도마다 다를 수 있음). */
+function geoHighTypeColorMap(year){
+  const types = new Set();
+  SCHOOLS.forEach(s=>{ if (s.level==='고' && s.year===Number(year) && s.type) types.add(s.type); });
+  const sorted = [...types].sort((a,b)=>a.localeCompare(b,'ko'));
+  const map = {};
+  sorted.forEach((t,i)=>{ map[t] = PALETTE[i % PALETTE.length]; });
+  return map;
+}
+const GEO_DOT_BASE_R = 4.2;
+const GEO_HIT_BASE_R = 9;
+const GEO_AGE_COLORS = {youth:'#22c55e', working:'#3b82f6', elderly:'#f59e0b'};
+
+async function loadGeoData(){
+  if (window.__EMBEDDED_GEO__) return window.__EMBEDDED_GEO__;
+  const res = await fetch('geo/geo_data.json', {cache:'no-store'});
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return await res.json();
+}
+
+function geoProject(x_m, y_m, t){
+  return [ (x_m - t.minX) * t.scale + t.pad, (t.maxY - y_m) * t.scale + t.pad ];
+}
+
+function populateGeoYearOptions(){
+  const years = Object.keys(GEO_DATA.population).map(Number).sort((a,b)=>a-b);
+  ['geo-a-year','geo-b-year'].forEach(id=>{
+    const sel = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = years.map(y=>`<option value="${y}">${y}년</option>`).join('');
+    if (prev && years.includes(Number(prev))) sel.value = prev;
+    else sel.value = String(years[years.length-1]);
+  });
+}
+
+function renderGeoALevelChecks(){
+  const row = document.getElementById('geo-a-levels');
+  row.innerHTML = ['전체','초','중','고'].map(v=>
+    `<label class="check-item"><input type="checkbox" value="${v}" checked> ${v==='전체'?'전체':LEVEL_NAMES[v]}</label>`
+  ).join('');
+  row.addEventListener('change', (e)=>{
+    const boxes = [...row.querySelectorAll('input')];
+    const allBox = boxes.find(b=>b.value==='전체');
+    if (e.target === allBox) {
+      boxes.forEach(b=>{ if (b!==allBox) b.checked = allBox.checked; });
+    } else {
+      const others = boxes.filter(b=>b!==allBox);
+      allBox.checked = others.every(b=>b.checked);
+    }
+    ['초','중','고'].forEach(lv=>{ geoALevels[lv] = boxes.find(b=>b.value===lv).checked; });
+    renderGeoA();
+  });
+}
+
+function geoSigPopTooltipHtml(name, year){
+  const p = GEO_DATA.population[year] && GEO_DATA.population[year][name];
+  const feat = GEO_DATA.sig.features.find(f=>f.name===name);
+  const lines = [`<div style="font-weight:700;margin-bottom:4px;">${name}</div>`];
+  if (p) {
+    lines.push(`<div>총인구: ${p.total.toLocaleString()}명</div>`);
+    if (feat && feat.area_km2) lines.push(`<div>인구밀도: ${Math.round(p.total/feat.area_km2).toLocaleString()}명/km²</div>`);
+  } else {
+    lines.push('<div style="color:#9ca3af;">해당 연도 인구자료 없음</div>');
+  }
+  return lines.join('');
+}
+
+function geoSigAgeTooltipHtml(name, year){
+  const p = GEO_DATA.population[year] && GEO_DATA.population[year][name];
+  const lines = [`<div style="font-weight:700;margin-bottom:4px;">${name}</div>`];
+  if (p) {
+    lines.push(`<div>총인구: ${p.total.toLocaleString()}명</div>`);
+    lines.push(`<div>유소년(0~14세): ${p.youth.count.toLocaleString()}명 (${p.youth.pct}%)</div>`);
+    lines.push(`<div>청장년(15~64세): ${p.working.count.toLocaleString()}명 (${p.working.pct}%)</div>`);
+    lines.push(`<div>노년(65세 이상): ${p.elderly.count.toLocaleString()}명 (${p.elderly.pct}%)</div>`);
+  } else {
+    lines.push('<div style="color:#9ca3af;">해당 연도 인구자료 없음</div>');
+  }
+  return lines.join('');
+}
+
+function geoSchoolTooltipHtml(loc, year){
+  const rec = SCHOOLS.find(s=>s.name===loc.name && s.level===loc.level && s.year===Number(year));
+  const lines = [`<div style="font-weight:700;margin-bottom:4px;">${loc.name}</div>`,
+    `<div>지역: ${loc.region ? shortRegion(loc.region) : '-'} · ${LEVEL_NAMES[loc.level]}</div>`];
+  if (rec) {
+    lines.push(`<div>설립: ${rec.est || '-'}${rec.type ? (' · ' + rec.type) : ''}</div>`);
+    lines.push(`<div>학급수: ${(rec.classes.total||0).toLocaleString()}개</div>`);
+    const m = rec.students.male||0, f = rec.students.female||0;
+    lines.push(`<div>학생수: ${(rec.students.total||0).toLocaleString()}명${(m||f) ? ` (남 ${m.toLocaleString()} / 여 ${f.toLocaleString()})` : ''}</div>`);
+  } else {
+    lines.push(`<div style="color:#9ca3af;">${year}년 자료 없음</div>`);
+  }
+  return lines.join('');
+}
+
+function renderGeoA(){
+  if (!GEO_DATA) return;
+  const year = document.getElementById('geo-a-year').value;
+  const container = document.getElementById('geo-a-map');
+  const backWrap = document.getElementById('geo-a-back-wrap');
+  const caption = document.getElementById('geo-a-caption');
+  container.innerHTML = '';
+  container.style.background = SETTINGS.geoMap.bgColor;
+
+  const drilled = !!geoASelectedSig;
+  const layer = drilled ? GEO_DATA.emdBySig[geoASelectedSig] : GEO_DATA.sig;
+  const sigFeature = drilled ? GEO_DATA.sig.features.find(f=>f.code===geoASelectedSig) : null;
+  const activeLevels = Object.keys(geoALevels).filter(lv=>geoALevels[lv]);
+  const onlyHigh = activeLevels.length === 1 && activeLevels[0] === '고';
+  backWrap.hidden = !drilled;
+  const baseCaption = drilled
+    ? `${sigFeature ? sigFeature.name : ''} 읍면동 경계 지도입니다. "전체 지도로" 버튼을 누르면 도 전체 지도로 돌아갑니다.`
+    : '시군 경계 위 점: 초(녹색) · 중(주황) · 고(파랑). 시군에 마우스를 올리면 인구 정보를, 클릭하면 읍면동 경계 지도를 볼 수 있습니다.';
+  caption.textContent = onlyHigh ? baseCaption + ' 고등학교만 선택되어 유형별 색상으로 표시합니다.' : baseCaption;
+
+  const svg = el('svg', {class:'geo-svg', viewBox: layer.viewBox});
+  const gPoly = el('g');
+  layer.features.forEach(f=>{
+    const path = el('path', {class: drilled ? 'geo-emd' : 'geo-sigungu', d: f.d, style:`fill:${SETTINGS.geoMap.bgColor};`});
+    if (!drilled) {
+      const showFn = (e)=> showTooltip(e, geoSigPopTooltipHtml(f.name, year));
+      path.addEventListener('mouseenter', showFn);
+      path.addEventListener('mousemove', showFn);
+      path.addEventListener('mouseleave', hideTooltip);
+      path.addEventListener('click', ()=>{ geoASelectedSig = f.code; renderGeoA(); });
+    } else {
+      const showFn = (e)=> showTooltip(e, `<div style="font-weight:700;">${f.name}</div>`);
+      path.addEventListener('mouseenter', showFn);
+      path.addEventListener('mousemove', showFn);
+      path.addEventListener('mouseleave', hideTooltip);
+    }
+    gPoly.appendChild(path);
+  });
+  svg.appendChild(gPoly);
+
+  if (!drilled) {
+    const gLabel = el('g');
+    layer.features.forEach(f=>{
+      gLabel.appendChild(el('text', {class:'geo-sig-label', x:f.cx, y:f.cy}));
+      gLabel.lastChild.textContent = shortRegion(f.name);
+    });
+    svg.appendChild(gLabel);
+  }
+
+  const t = layer.transform;
+  const typeColorMap = onlyHigh ? geoHighTypeColorMap(year) : null;
+  const pool = GEO_DATA.schools.filter(s=>{
+    if (!activeLevels.includes(s.level)) return false;
+    if (drilled && s.region !== sigFeature.name) return false;
+    return true;
+  });
+  const gDots = el('g');
+  pool.forEach(s=>{
+    const [x,y] = geoProject(s.x_m, s.y_m, t);
+    let color = GEO_LEVEL_COLORS[s.level];
+    if (onlyHigh) {
+      const rec = SCHOOLS.find(r=>r.name===s.name && r.level==='고' && r.year===Number(year));
+      color = (rec && typeColorMap[rec.type]) || GEO_TYPE_FALLBACK_COLOR;
+    }
+    const dot = el('circle', {class:'geo-school-dot', cx:x.toFixed(2), cy:y.toFixed(2), r:(GEO_DOT_BASE_R*geoADotScale).toFixed(2), style:`fill:${color}`});
+    const hit = el('circle', {class:'geo-school-hit', cx:x.toFixed(2), cy:y.toFixed(2), r:(GEO_HIT_BASE_R*geoADotScale).toFixed(2)});
+    const showFn = (e)=> showTooltip(e, geoSchoolTooltipHtml(s, year));
+    hit.addEventListener('mouseenter', ()=>{ dot.classList.add('is-hover'); });
+    hit.addEventListener('mousemove', showFn);
+    hit.addEventListener('mouseleave', ()=>{ dot.classList.remove('is-hover'); hideTooltip(); });
+    gDots.appendChild(dot);
+    gDots.appendChild(hit);
+  });
+  svg.appendChild(gDots);
+
+  const legend = el('div', {class:'geo-legend-panel'});
+  legend.innerHTML = onlyHigh
+    ? '<div class="legend">' + Object.keys(typeColorMap).map(tp=>
+        `<span class="legend-item"><i style="background:${typeColorMap[tp]};"></i>${tp}</span>`
+      ).join('') + '</div>'
+    : '<div class="legend">' + ['초','중','고'].map(lv=>
+        `<span class="legend-item"><i style="background:${GEO_LEVEL_COLORS[lv]};"></i>${LEVEL_NAMES[lv]}</span>`
+      ).join('') + '</div>';
+
+  container.appendChild(svg);
+  container.appendChild(legend);
+}
+
+/* 단계구분(choropleth) 색 분류: 등간구분/분위수 */
+function geoClassifyBreaks(values, tierCount, method){
+  const sorted = values.slice().sort((a,b)=>a-b);
+  const breaks = [];
+  if (method === 'quantile') {
+    for (let i=1;i<tierCount;i++){
+      const idx = Math.min(sorted.length-1, Math.round(i/tierCount*(sorted.length-1)));
+      breaks.push(sorted[idx]);
+    }
+  } else {
+    const min = sorted[0], max = sorted[sorted.length-1];
+    const step = (max-min)/tierCount;
+    for (let i=1;i<tierCount;i++) breaks.push(min+step*i);
+  }
+  return breaks;
+}
+function geoTierIndex(value, breaks){
+  for (let i=0;i<breaks.length;i++) if (value <= breaks[i]) return i;
+  return breaks.length;
+}
+
+function renderGeoB(){
+  if (!GEO_DATA) return;
+  const year = document.getElementById('geo-b-year').value;
+  const container = document.getElementById('geo-b-map');
+  const legendEl = document.getElementById('geo-b-legend');
+  container.innerHTML = '';
+  legendEl.innerHTML = '';
+  container.style.background = SETTINGS.geoMap.bgColor;
+
+  const gm = SETTINGS.geoMap;
+  const layer = GEO_DATA.sig;
+  const popByName = GEO_DATA.population[year] || {};
+  const values = layer.features.map(f=> (popByName[f.name] ? popByName[f.name].total : 0));
+  const breaks = geoClassifyBreaks(values, gm.tierCount, gm.method);
+  const colors = gm.colors;
+
+  const svg = el('svg', {class:'geo-svg', viewBox: layer.viewBox});
+  const gPoly = el('g');
+  layer.features.forEach((f,i)=>{
+    const color = colors[geoTierIndex(values[i], breaks)] || colors[colors.length-1];
+    const path = el('path', {class:'geo-sigungu no-click', d:f.d, style:`fill:${color};`});
+    const showFn = (e)=> showTooltip(e, geoSigAgeTooltipHtml(f.name, year));
+    path.addEventListener('mouseenter', showFn);
+    path.addEventListener('mousemove', showFn);
+    path.addEventListener('mouseleave', hideTooltip);
+    gPoly.appendChild(path);
+  });
+  svg.appendChild(gPoly);
+  const gLabel = el('g');
+  layer.features.forEach(f=>{
+    gLabel.appendChild(el('text', {class:'geo-sig-label', x:f.cx, y:f.cy}));
+    gLabel.lastChild.textContent = shortRegion(f.name);
+  });
+  svg.appendChild(gLabel);
+  container.appendChild(svg);
+
+  const fmt = n => Math.round(n).toLocaleString();
+  const tierRanges = colors.map((c,i)=>{
+    const lo = i===0 ? Math.min(...values) : breaks[i-1];
+    const hi = i===colors.length-1 ? Math.max(...values) : breaks[i];
+    return {color:c, label: i===colors.length-1 ? `${fmt(lo)}명 ~` : `${fmt(lo)} ~ ${fmt(hi)}명`};
+  });
+  legendEl.innerHTML = tierRanges.map(t=>
+    `<div class="tier"><div class="swatch" style="background:${t.color};"></div><div class="range">${t.label}</div></div>`
+  ).join('');
+
+  renderGeoPopBarChart(document.getElementById('geo-b-bar-chart'), year);
+}
+
+/* 시군별 인구 누적 막대그래프: 유소년/청장년/노년, 맨 위 총인구수, 막대 내부에 각 인구수(비율) 표시 */
+function renderGeoPopBarChart(container, year){
+  container.innerHTML = '';
+  const popByName = GEO_DATA.population[year] || {};
+  const categories = REGION_ORDER.filter(r=>popByName[r]);
+  if (!categories.length) { container.innerHTML = '<p class="empty">해당 연도 인구자료가 없습니다.</p>'; return; }
+
+  const AGE_KEYS = [['youth','유소년'], ['working','청장년'], ['elderly','노년']];
+  const n = categories.length;
+  const W = Math.max(560, n * 58);
+  const H = 340;
+  const marginL = 60, marginR = 20, marginT = 30, marginB = 42;
+  const plotW = W - marginL - marginR, plotH = H - marginT - marginB;
+  const totals = categories.map(r=>popByName[r].total);
+  const maxVal = Math.max(1, ...totals) * 1.15;
+  const svg = el('svg', {viewBox:`0 0 ${W} ${H}`, width:'100%', preserveAspectRatio:'xMidYMid meet'});
+  svg.classList.add('chart-svg');
+
+  const ticks = 5;
+  for (let i=0;i<=ticks;i++){
+    const v = maxVal*i/ticks;
+    const y = marginT + plotH - (v/maxVal)*plotH;
+    svg.appendChild(el('line',{x1:marginL,x2:W-marginR,y1:y,y2:y,class:'gridline'}));
+    const t = el('text',{x:marginL-8,y:y+4,'text-anchor':'end',class:'axis-label'});
+    t.textContent = Math.round(v).toLocaleString();
+    svg.appendChild(t);
+  }
+  svg.appendChild(el('line',{x1:marginL,x2:W-marginR,y1:marginT+plotH,y2:marginT+plotH,class:'axis-line'}));
+
+  const groupW = plotW / n;
+  const barW = Math.min(38, groupW * 0.62);
+
+  categories.forEach((region, ci) => {
+    const p = popByName[region];
+    const gx = marginL + ci*groupW + groupW/2;
+    const bx = gx - barW/2;
+    let acc = 0;
+    AGE_KEYS.forEach(([key, label])=>{
+      const v = p[key].count;
+      const pct = p[key].pct;
+      const segH = (v/maxVal)*plotH;
+      const y1 = (marginT + plotH) - (acc/maxVal)*plotH - segH;
+      const rect = el('rect', {x:bx, y:y1, width:barW, height:Math.max(segH,0), fill:GEO_AGE_COLORS[key], rx:2});
+      rect.addEventListener('mousemove', (e)=>showTooltip(e, `<strong>${shortRegion(region)} · ${label}</strong><br>${v.toLocaleString()}명 (${pct}%)`));
+      rect.addEventListener('mouseleave', hideTooltip);
+      svg.appendChild(rect);
+      if (segH > 26) {
+        const cx = bx + barW/2, cy = y1 + segH/2;
+        const t1 = el('text', {x:cx, y:cy-2, 'text-anchor':'middle', class:'bar-value', style:'font-size:9px;fill:#fff;font-weight:600;'});
+        t1.textContent = v.toLocaleString();
+        const t2 = el('text', {x:cx, y:cy+9, 'text-anchor':'middle', class:'bar-value', style:'font-size:9px;fill:#fff;font-weight:600;'});
+        t2.textContent = `(${pct}%)`;
+        svg.appendChild(t1); svg.appendChild(t2);
+      }
+      acc += v;
+    });
+    const totalY = (marginT + plotH) - (totals[ci]/maxVal)*plotH - 6;
+    const totalLbl = el('text', {x:gx, y:totalY, 'text-anchor':'middle', class:'bar-value'});
+    totalLbl.textContent = totals[ci].toLocaleString();
+    svg.appendChild(totalLbl);
+
+    const xLbl = el('text', {x:gx, y:marginT+plotH+18, 'text-anchor':'middle', class:'x-label'});
+    xLbl.textContent = shortRegion(region);
+    svg.appendChild(xLbl);
+  });
+
+  container.appendChild(svg);
+  container.appendChild(buildLegend(AGE_KEYS.map(([key,label])=>({name:label, color:GEO_AGE_COLORS[key]}))));
+  appendChartDownloadRow(container, `${year}년_강원_시군별_인구_그래프`);
+}
+
+function initGeoView(){
+  if (GEO_INIT) return;
+  if (!GEO_DATA) {
+    document.getElementById('view-geo').innerHTML = '<div class="note" style="border-color:#dc2626;background:#fef2f2;color:#991b1b;">지도 데이터(geo/geo_data.json)를 불러오지 못했습니다. 저장소에 geo/geo_data.json 파일이 있는지 확인해 주세요.</div>';
+    return;
+  }
+  GEO_INIT = true;
+  populateGeoYearOptions();
+  renderGeoALevelChecks();
+  document.getElementById('geo-a-year').addEventListener('change', renderGeoA);
+  document.getElementById('geo-b-year').addEventListener('change', renderGeoB);
+  document.getElementById('geo-a-back').addEventListener('click', ()=>{ geoASelectedSig = null; renderGeoA(); });
+  document.getElementById('geo-a-dotsize').addEventListener('input', (e)=>{
+    geoADotScale = parseFloat(e.target.value);
+    document.getElementById('geo-a-dotsize-label').textContent = geoADotScale.toFixed(1) + 'x';
+    document.querySelectorAll('#geo-a-map .geo-school-dot').forEach(d=> d.setAttribute('r', (GEO_DOT_BASE_R*geoADotScale).toFixed(2)));
+    document.querySelectorAll('#geo-a-map .geo-school-hit').forEach(d=> d.setAttribute('r', (GEO_HIT_BASE_R*geoADotScale).toFixed(2)));
+  });
+  renderGeoA();
+  renderGeoB();
+}
+
 /* ---------- tabs ---------- */
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -3843,6 +4355,9 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
       initTopicsView();
       populateTopicsYearOptions();
       doTopicsSearch();
+    } else if (btn.dataset.view === 'geo') {
+      document.getElementById('view-geo').classList.add('active');
+      initGeoView();
     } else {
       document.getElementById('view-'+btn.dataset.view).classList.add('active');
     }
@@ -3880,6 +4395,11 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   initLevelView();
   renderLevelView('고');
   initAdmin();
+  try {
+    GEO_DATA = await loadGeoData();
+  } catch(e) {
+    console.warn('GEO DATA를 불러오지 못했습니다:', e.message);
+  }
 });
 </script>
 </body>
