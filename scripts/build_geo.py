@@ -187,19 +187,7 @@ def build_schools(sig_centroids, sig_features):
         if region is None:
             unmatched.append(s["name"])
         out.append({
-<<<<<<< HEAD
             "name": name, "level": level, "region": region,
-=======
-<<<<<<< Updated upstream
-            "name": s["name"], "level": level, "region": region,
-=======
-<<<<<<< HEAD
-            "name": name, "level": level, "region": region,
-=======
-            "name": s["name"], "level": level, "region": region,
->>>>>>> 62520d9cbc28eb03861cd0f9f6be7d6edf0a1236
->>>>>>> Stashed changes
->>>>>>> ceb51a0627671727e9ed315791fc1eeaf1a040b8
             "x_m": round(x_m, 1), "y_m": round(y_m, 1),
         })
 
