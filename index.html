@@ -116,8 +116,16 @@ th{background:#f9fafb;position:sticky;top:0;}
 .geo-small-school-dot{stroke:#fff;stroke-width:1.1;pointer-events:none;}
 .geo-small-school-dot.is-hover{stroke:#222;stroke-width:1.8;}
 .geo-diff-label{fill:#3f3b32;font-size:9px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:2.5px;stroke-linejoin:round;pointer-events:none;}
-.geo-pie-donut{pointer-events:none;}
+.geo-pie-donut circle{cursor:pointer;}
+.geo-donut-seg-label{fill:#1f2937;font-weight:700;text-anchor:middle;dominant-baseline:middle;paint-order:stroke;stroke:#fff;stroke-width:2px;stroke-linejoin:round;pointer-events:none;}
 .geo-count-badge{fill:#7c2d12;font-size:9px;font-weight:700;}
+.geo-toolbar-row{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-bottom:8px;}
+.geo-zoom-group{display:flex;gap:3px;align-items:center;}
+.geo-toolbar-label{font-size:12px;color:var(--sub);margin-right:2px;}
+.geo-zoom-group .btn.small{padding:3px 9px;min-width:30px;}
+.geo-back-btn{margin-left:4px;}
+.geo-map-wrap{cursor:grab;}
+.geo-map-wrap:active{cursor:grabbing;}
 @media (max-width:600px){ .topbar h1{font-size:18px;} main{padding:14px;} }
 </style>
 </head>
@@ -383,6 +391,7 @@ th{background:#f9fafb;position:sticky;top:0;}
           <input type="number" id="geo-c-threshold" min="1" max="500" value="60" style="width:90px;">
         </div>
       </div>
+      <p id="geo-c-caption" class="sub" style="margin:0 0 8px;"></p>
       <div id="geo-c-map" class="geo-map-wrap"></div>
     </div>
 
@@ -428,6 +437,7 @@ th{background:#f9fafb;position:sticky;top:0;}
           <select id="geo-e-year"></select>
         </div>
       </div>
+      <p id="geo-e-caption" class="sub" style="margin:0 0 8px;"></p>
       <div id="geo-e-map" class="geo-map-wrap"></div>
     </div>
   </section>
@@ -2558,6 +2568,38 @@ async function pushLastUploadedFilesToGithub(){
   statusEl.textContent = lines.join('\n') + (failed ? '' : '\n\n잠시 후(1~2분) data.json이 자동으로 다시 만들어지고, 배포된 사이트에 모든 방문자에게 반영됩니다.');
 }
 
+const GEO_SETTINGS_REPO_PATH = 'geo/geo_settings.json';
+async function saveGeoSettingsToGithub(){
+  const statusEl = document.getElementById('geo-settings-save-status');
+  const settings = loadGhSettings();
+  statusEl.hidden = false;
+  if (!settings.ownerRepo || !settings.token) {
+    statusEl.className = 'upload-status error';
+    statusEl.textContent = '먼저 아래 "깃허브에 자동 저장" 카드에서 저장소(owner/repo)와 토큰을 입력하고 "연동 정보 저장" 버튼을 눌러주세요.';
+    return;
+  }
+  statusEl.className = 'upload-status';
+  statusEl.textContent = '저장하는 중...';
+  try {
+    const json = JSON.stringify(SETTINGS.geoMap, null, 2);
+    const base64 = btoa(unescape(encodeURIComponent(json)));
+    await pushFileToGithub(settings, GEO_SETTINGS_REPO_PATH, base64, 'Update GEO DATA map settings via admin page');
+    saveSettings(SETTINGS);
+    statusEl.className = 'upload-status success';
+    statusEl.textContent = '저장 완료! 잠시 후(1~2분) 배포된 사이트에 모든 방문자에게 반영됩니다.';
+  } catch (err) {
+    statusEl.className = 'upload-status error';
+    statusEl.textContent = `저장 실패: ${err.message}`;
+  }
+}
+async function loadSharedGeoSettings(){
+  try {
+    const res = await fetch(GEO_SETTINGS_REPO_PATH, {cache:'no-store'});
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) { return null; }
+}
+
 /* ---------- minimal XLSX writer (no external libraries; ZIP with STORE/no compression) ---------- */
 let CRC32_TABLE = null;
 function crc32(bytes){
@@ -2906,11 +2948,18 @@ function renderAdminPanel(){
             <option value="population">인구 수</option>
             <option value="teacherRatio">교원 1인당 학생 수</option>
             <option value="classRatio">학급당 학생 수</option>
+            <option value="schoolDensity">학교 밀도</option>
+            <option value="enrollmentRatio">학령인구 대비 재학생 비율</option>
           </select>
         </div>
         <p class="sub" style="margin:0 0 8px;">각 구간의 상한값을 입력하세요. 예를 들어 3단계라면 두 개의 경계값을 입력해 [~경계1] [경계1~경계2] [경계2~] 구간이 만들어집니다.</p>
         <div id="geo-manual-break-row" class="geo-color-row"></div>
         <button id="btn-geo-manual-reset" class="btn small">자동 계산 값으로 초기화</button>
+      </div>
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+        <p class="sub" style="margin:0 0 8px;">"설정 저장" 버튼을 누르면 지금 위에서 설정한 지도 배경색·단계 수·구분기준·색상·구간값이 깃허브 저장소에 저장되어 다른 방문자에게도 동일하게 보여집니다. (저장하려면 아래 "깃허브에 자동 저장" 카드에서 저장소·토큰을 먼저 등록해야 합니다)</p>
+        <button id="btn-geo-settings-save" class="btn primary">설정 저장 (모두에게 적용)</button>
+        <p id="geo-settings-save-status" class="upload-status" hidden></p>
       </div>
     </div>
     <div class="card">
@@ -3081,6 +3130,7 @@ function renderAdminPanel(){
     renderGeoManualBreakRow();
     if (GEO_INIT) renderGeoB();
   });
+  document.getElementById('btn-geo-settings-save').addEventListener('click', saveGeoSettingsToGithub);
   renderGeoColorRow();
   if (SETTINGS.geoMap.method === 'manual') renderGeoManualBreakRow();
   renderAdminTable();
@@ -3377,6 +3427,7 @@ function refreshAll(){
   if (YEARCHANGE_INIT) { populateYearChangeYearOptions(); doYearChangeSearch(); }
   if (TOPICS_INIT) { populateTopicsYearOptions(); doTopicsSearch(); }
   Object.keys(geoCountyRatiosCache).forEach(k=>delete geoCountyRatiosCache[k]);
+  Object.keys(geoEmdSchoolAggCache).forEach(k=>delete geoEmdSchoolAggCache[k]);
   if (GEO_INIT) { renderGeoA(); renderGeoB(); renderGeoC(); renderGeoD(); renderGeoE(); }
 }
 
@@ -4260,6 +4311,238 @@ function geoSchoolTooltipHtml(loc, year){
 
 function geoBgFill(){ return SETTINGS.geoMap.bgTransparent ? 'transparent' : SETTINGS.geoMap.bgColor; }
 
+/* ---------- GEO DATA: 지도 확대/축소 + 지명 크기 조절 공통 기능 ---------- */
+const GEO_ZOOM_STATE = {};
+const GEO_LABEL_SCALE = {};
+function geoZoomOf(key){
+  if (!GEO_ZOOM_STATE[key]) GEO_ZOOM_STATE[key] = {scale:1, cx:null, cy:null};
+  return GEO_ZOOM_STATE[key];
+}
+function geoLabelScaleOf(key){
+  if (GEO_LABEL_SCALE[key] == null) GEO_LABEL_SCALE[key] = 1;
+  return GEO_LABEL_SCALE[key];
+}
+function geoLabelFontSize(key, base){
+  return (base * geoLabelScaleOf(key)).toFixed(2) + 'px';
+}
+function geoClampCenter(vb, w, h, cx, cy){
+  let x = cx - w/2, y = cy - h/2;
+  x = Math.max(vb[0], Math.min(x, vb[0] + vb[2] - w));
+  y = Math.max(vb[1], Math.min(y, vb[1] + vb[3] - h));
+  return {cx: x + w/2, cy: y + h/2};
+}
+/* 렌더 함수가 svg를 만든 뒤 호출: 현재 확대/이동 상태를 viewBox에 반영한다. */
+function geoApplyZoomViewBox(svg, layer, key){
+  svg.dataset.baseViewBox = layer.viewBox;
+  const vb = layer.viewBox.split(/\s+/).map(Number);
+  const st = geoZoomOf(key);
+  const scale = Math.max(1, st.scale || 1);
+  const w = vb[2] / scale, h = vb[3] / scale;
+  const cx0 = st.cx != null ? st.cx : vb[0] + vb[2]/2;
+  const cy0 = st.cy != null ? st.cy : vb[1] + vb[3]/2;
+  const c = geoClampCenter(vb, w, h, cx0, cy0);
+  st.cx = c.cx; st.cy = c.cy;
+  svg.setAttribute('viewBox', `${c.cx - w/2} ${c.cy - h/2} ${w} ${h}`);
+}
+const GEO_DRAG_SUPPRESS = {};
+/* 지도 컨테이너(div)에 휠 확대·드래그 이동 상호작용을 한 번만 연결한다. */
+function attachGeoPanZoom(containerId, key, rerenderFn){
+  const container = document.getElementById(containerId);
+  if (!container || container.dataset.panZoomBound) return;
+  container.dataset.panZoomBound = '1';
+  let dragging = false, moved = false, startX=0, startY=0, startCx=0, startCy=0;
+  const svgEl = () => container.querySelector('svg');
+
+  container.addEventListener('wheel', (e)=>{
+    if (!svgEl()) return;
+    e.preventDefault();
+    const st = geoZoomOf(key);
+    const factor = e.deltaY < 0 ? 1.25 : 0.8;
+    st.scale = Math.max(1, Math.min(10, (st.scale||1)*factor));
+    rerenderFn();
+  }, {passive:false});
+
+  container.addEventListener('mousedown', (e)=>{
+    const svg = svgEl();
+    if (!svg || !svg.dataset.baseViewBox) return;
+    dragging = true; moved = false;
+    startX = e.clientX; startY = e.clientY;
+    const st = geoZoomOf(key);
+    const vb = svg.getAttribute('viewBox').split(/\s+/).map(Number);
+    startCx = st.cx != null ? st.cx : vb[0]+vb[2]/2;
+    startCy = st.cy != null ? st.cy : vb[1]+vb[3]/2;
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', (e)=>{
+    if (!dragging) return;
+    const svg = svgEl();
+    if (!svg || !svg.dataset.baseViewBox) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+    if (!moved) return;
+    const rect = container.getBoundingClientRect();
+    if (!rect.width) return;
+    const curVb = svg.getAttribute('viewBox').split(/\s+/).map(Number);
+    const baseVb = svg.dataset.baseViewBox.split(/\s+/).map(Number);
+    const unitsPerPx = curVb[2] / rect.width;
+    const rawCx = startCx - dx*unitsPerPx;
+    const rawCy = startCy - dy*unitsPerPx;
+    const c = geoClampCenter(baseVb, curVb[2], curVb[3], rawCx, rawCy);
+    const st = geoZoomOf(key);
+    st.cx = c.cx; st.cy = c.cy;
+    svg.setAttribute('viewBox', `${c.cx-curVb[2]/2} ${c.cy-curVb[3]/2} ${curVb[2]} ${curVb[3]}`);
+  });
+  window.addEventListener('mouseup', ()=>{
+    if (!dragging) return;
+    dragging = false;
+    if (moved) {
+      GEO_DRAG_SUPPRESS[key] = true;
+      setTimeout(()=>{ GEO_DRAG_SUPPRESS[key] = false; }, 0);
+    }
+  });
+}
+function appendMapDownloadRow(mapContainerId, outerEl, filenameBase){
+  const row = document.createElement('div');
+  row.className = 'chart-download-row';
+  const label = document.createElement('span'); label.className = 'dl-label'; label.textContent = '다운로드';
+  row.appendChild(label);
+  ['png','jpg','svg'].forEach(fmt=>{
+    const btn = document.createElement('button');
+    btn.className = 'btn small';
+    btn.textContent = fmt.toUpperCase();
+    btn.addEventListener('click', ()=>{
+      const svgEl = document.querySelector('#'+mapContainerId+' svg');
+      if (!svgEl) { alert('다운로드할 지도가 없습니다.'); return; }
+      exportChartAsImage(svgEl, fmt, filenameBase);
+    });
+    row.appendChild(btn);
+  });
+  outerEl.appendChild(row);
+}
+/* 지도 카드마다 확대/축소·지명 크기 툴바 + 다운로드 버튼을 한 번만 삽입하고 상호작용을 연결한다. */
+function setupGeoMapChrome(key, mapContainerId, rerenderFn, opts={}){
+  const mapEl = document.getElementById(mapContainerId);
+  if (!mapEl || mapEl.dataset.chromeSetup) return;
+  mapEl.dataset.chromeSetup = '1';
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'geo-toolbar-row';
+  toolbar.innerHTML = `
+    <div class="geo-zoom-group">
+      <span class="geo-toolbar-label">지도 확대</span>
+      <button type="button" class="btn small" data-act="zoom-out">−</button>
+      <button type="button" class="btn small" data-act="zoom-reset">100%</button>
+      <button type="button" class="btn small" data-act="zoom-in">+</button>
+    </div>
+    <div class="geo-zoom-group">
+      <span class="geo-toolbar-label">지명 크기</span>
+      <button type="button" class="btn small" data-act="label-out">가−</button>
+      <button type="button" class="btn small" data-act="label-reset">가</button>
+      <button type="button" class="btn small" data-act="label-in">가+</button>
+    </div>
+    ${opts.drillable ? '<button type="button" class="btn small geo-back-btn" data-act="back" hidden>전체 지도로</button>' : ''}
+  `;
+  mapEl.parentElement.insertBefore(toolbar, mapEl);
+  toolbar.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const act = btn.dataset.act;
+    const st = geoZoomOf(key);
+    if (act==='zoom-in') st.scale = Math.min(10,(st.scale||1)*1.4);
+    else if (act==='zoom-out') st.scale = Math.max(1,(st.scale||1)/1.4);
+    else if (act==='zoom-reset') { st.scale=1; st.cx=null; st.cy=null; }
+    else if (act==='label-in') GEO_LABEL_SCALE[key] = Math.min(2.5, geoLabelScaleOf(key)*1.15);
+    else if (act==='label-out') GEO_LABEL_SCALE[key] = Math.max(0.5, geoLabelScaleOf(key)/1.15);
+    else if (act==='label-reset') GEO_LABEL_SCALE[key] = 1;
+    else if (act==='back') { if (opts.onBack) opts.onBack(); return; }
+    rerenderFn();
+  });
+
+  const dlRow = document.createElement('div');
+  mapEl.parentElement.insertBefore(dlRow, mapEl.nextSibling);
+  appendMapDownloadRow(mapContainerId, dlRow, opts.filenameBase || ('강원_지도_' + key));
+
+  attachGeoPanZoom(mapContainerId, key, rerenderFn);
+}
+function geoBackBtnFor(mapContainerId){
+  const mapEl = document.getElementById(mapContainerId);
+  return mapEl && mapEl.previousElementSibling ? mapEl.previousElementSibling.querySelector('.geo-back-btn') : null;
+}
+
+/* ---------- GEO DATA: 시군 내 읍면동 자동 판정(점-폴리곤) ---------- */
+function geoParsePolygonD(d){
+  const rings = [];
+  let current = null;
+  const re = /([ML])\s*([-\d.]+)[ ,]\s*([-\d.]+)|Z/gi;
+  let m;
+  while ((m = re.exec(d))) {
+    if (m[0].toUpperCase() === 'Z') { if (current) rings.push(current); current = null; continue; }
+    const cmd = m[1].toUpperCase();
+    const x = parseFloat(m[2]), y = parseFloat(m[3]);
+    if (cmd === 'M') { if (current) rings.push(current); current = [[x,y]]; }
+    else if (cmd === 'L' && current) { current.push([x,y]); }
+  }
+  if (current) rings.push(current);
+  return rings;
+}
+function geoPointInRing(x, y, ring){
+  let inside = false;
+  for (let i=0, j=ring.length-1; i<ring.length; j=i++){
+    const xi=ring[i][0], yi=ring[i][1], xj=ring[j][0], yj=ring[j][1];
+    if (((yi>y)!==(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi)) inside = !inside;
+  }
+  return inside;
+}
+function geoPointInFeature(x, y, feature){
+  if (!feature.__rings) feature.__rings = geoParsePolygonD(feature.d);
+  let inside = false;
+  feature.__rings.forEach(ring=>{ if (geoPointInRing(x,y,ring)) inside = !inside; });
+  return inside;
+}
+function geoFindEmdForPoint(x, y, emdLayer){
+  for (const f of emdLayer.features) { if (geoPointInFeature(x, y, f)) return f; }
+  return null;
+}
+function geoRingAreaUnits(ring){
+  let a = 0;
+  for (let i=0, j=ring.length-1; i<ring.length; j=i++) a += (ring[j][0]+ring[i][0]) * (ring[j][1]-ring[i][1]);
+  return Math.abs(a)/2;
+}
+function geoFeatureAreaKm2(feature, transformScale){
+  if (!feature.__rings) feature.__rings = geoParsePolygonD(feature.d);
+  const unitsArea = feature.__rings.reduce((acc,ring)=>acc+geoRingAreaUnits(ring),0);
+  return (unitsArea / (transformScale*transformScale)) / 1e6;
+}
+/* 특정 시군의 읍면동별 학교 집계(학생·교원·학급·학교급별 학생수)를 계산한다. 학교 좌표를 읍면동 폴리곤에 점-폴리곤 판정으로 배정한다. */
+const geoEmdSchoolAggCache = {};
+function geoEmdSchoolAgg(sigCode, year){
+  const cacheKey = sigCode + '__' + year;
+  if (geoEmdSchoolAggCache[cacheKey]) return geoEmdSchoolAggCache[cacheKey];
+  const emdLayer = GEO_DATA.emdBySig[sigCode];
+  if (!emdLayer) return null;
+  const t = emdLayer.transform;
+  const sigFeature = GEO_DATA.sig.features.find(f=>f.code===sigCode);
+  const pool = GEO_DATA.schools.filter(s=> s.region === (sigFeature && sigFeature.name));
+  const byEmd = {};
+  emdLayer.features.forEach(f=>{ byEmd[f.name] = {studentsTotal:0, staffTotal:0, classesTotal:0, byLevel:{'초':0,'중':0,'고':0}, schoolCount:0}; });
+  pool.forEach(s=>{
+    const [x,y] = geoProject(s.x_m, s.y_m, t);
+    const f = geoFindEmdForPoint(x, y, emdLayer);
+    if (!f) return;
+    const bucket = byEmd[f.name];
+    const rec = SCHOOLS.find(r=>r.name===s.name && r.level===s.level && r.year===Number(year));
+    bucket.schoolCount += 1;
+    if (rec) {
+      bucket.studentsTotal += rec.students.total||0;
+      bucket.staffTotal += rec.staff||0;
+      bucket.classesTotal += rec.classes.total||0;
+      bucket.byLevel[s.level] += rec.students.total||0;
+    }
+  });
+  geoEmdSchoolAggCache[cacheKey] = byEmd;
+  return byEmd;
+}
+
 /* 축척(스케일 바)에 쓸 "보기 좋은" 미터 값을 고른다 (1/2/5 * 10^n m). */
 function geoNiceScaleMeters(rawMeters){
   if (!(rawMeters > 0)) return 1000;
@@ -4273,34 +4556,54 @@ function geoNiceScaleMeters(rawMeters){
   return nice * Math.pow(10, exponent);
 }
 
-/* 지도 우측 하단에 축척 바를 그린다. layer.transform.scale은 미터당 viewBox 단위. */
+function geoCurrentViewBox(svg, layer){
+  const raw = svg.getAttribute('viewBox');
+  return (raw || layer.viewBox).split(/\s+/).map(Number);
+}
+/* 확대 정도에 관계없이 화면상 크기가 일정하게 보이도록, 현재 보이는 영역이 원본 대비 얼마나 축소됐는지 비율을 구한다. */
+function geoZoomUnit(svg, layer){
+  const base = layer.viewBox.split(/\s+/).map(Number);
+  const cur = geoCurrentViewBox(svg, layer);
+  return base[3] ? (cur[3] / base[3]) : 1;
+}
+
+/* 지도 왼쪽 하단에 흑백 교차 막대형 축척을 그린다. layer.transform.scale은 미터당 viewBox 단위. */
 function renderGeoScaleBar(svg, layer){
   const t = layer.transform;
   if (!t || !t.scale) return;
-  const vb = layer.viewBox.split(/\s+/).map(Number);
-  const targetPx = vb[2] * 0.2;
+  const vb = geoCurrentViewBox(svg, layer);
+  const unit = geoZoomUnit(svg, layer);
+  const targetPx = vb[2] * 0.22;
   const niceMeters = geoNiceScaleMeters(targetPx / t.scale);
   const barPx = niceMeters * t.scale;
+  const half = barPx / 2;
   const label = niceMeters >= 1000 ? `${(niceMeters/1000).toFixed(niceMeters % 1000 === 0 ? 0 : 1)}km` : `${niceMeters}m`;
-  const x0 = vb[0] + vb[2] - barPx - 18;
-  const y0 = vb[1] + vb[3] - 20;
+  const barH = Math.max(3, 5*unit);
+  const fontSize = Math.max(8, 10*unit);
+  const x0 = vb[0] + vb[2]*0.03;
+  const y0 = vb[1] + vb[3] - vb[3]*0.035 - barH;
   const g = el('g', {class:'geo-scalebar'});
-  g.appendChild(el('line', {x1:x0, x2:x0+barPx, y1:y0, y2:y0, stroke:'#3f3b32', 'stroke-width':2}));
-  g.appendChild(el('line', {x1:x0, x2:x0, y1:y0-4, y2:y0+4, stroke:'#3f3b32', 'stroke-width':2}));
-  g.appendChild(el('line', {x1:x0+barPx, x2:x0+barPx, y1:y0-4, y2:y0+4, stroke:'#3f3b32', 'stroke-width':2}));
-  const label1 = el('text', {class:'geo-scalebar-label', x:x0+barPx/2, y:y0-7, 'text-anchor':'middle'});
-  label1.textContent = label;
-  g.appendChild(label1);
+  g.appendChild(el('rect', {x:x0, y:y0, width:half, height:barH, fill:'#3f3b32'}));
+  g.appendChild(el('rect', {x:x0+half, y:y0, width:Math.max(barPx-half,0), height:barH, fill:'#fff', stroke:'#3f3b32', 'stroke-width':Math.max(0.5,0.8*unit)}));
+  [x0, x0+half, x0+barPx].forEach(tx=>{
+    g.appendChild(el('line', {x1:tx, x2:tx, y1:y0-2*unit, y2:y0+barH+2*unit, stroke:'#3f3b32', 'stroke-width':Math.max(0.6,1*unit)}));
+  });
+  const t0 = el('text', {class:'geo-scalebar-label', x:x0, y:y0-4*unit, 'text-anchor':'start', style:`font-size:${fontSize.toFixed(1)}px;`});
+  t0.textContent = '0';
+  const t1 = el('text', {class:'geo-scalebar-label', x:x0+barPx, y:y0-4*unit, 'text-anchor':'end', style:`font-size:${fontSize.toFixed(1)}px;`});
+  t1.textContent = label;
+  g.appendChild(t0); g.appendChild(t1);
   svg.appendChild(g);
 }
 
 /* 지도 우측 상단에 방위표(북쪽 화살표)를 그린다. 좌표계가 투영 격자 기준 위쪽 = 북쪽이다. */
 function renderGeoNorthArrow(svg, layer){
-  const vb = layer.viewBox.split(/\s+/).map(Number);
-  const cx = vb[0] + vb[2] - 26, cy = vb[1] + 30;
+  const vb = geoCurrentViewBox(svg, layer);
+  const unit = geoZoomUnit(svg, layer);
+  const cx = vb[0] + vb[2] - 26*unit, cy = vb[1] + 30*unit;
   const g = el('g', {class:'geo-north-arrow'});
-  g.appendChild(el('polygon', {points:`${cx},${cy-14} ${cx-7},${cy+9} ${cx},${cy+3} ${cx+7},${cy+9}`, fill:'#3f3b32'}));
-  const label = el('text', {class:'geo-north-label', x:cx, y:cy+21});
+  g.appendChild(el('polygon', {points:`${cx},${cy-14*unit} ${cx-7*unit},${cy+9*unit} ${cx},${cy+3*unit} ${cx+7*unit},${cy+9*unit}`, fill:'#3f3b32'}));
+  const label = el('text', {class:'geo-north-label', x:cx, y:cy+21*unit, style:`font-size:${Math.max(8,12*unit).toFixed(1)}px;`});
   label.textContent = 'N';
   g.appendChild(label);
   svg.appendChild(g);
@@ -4327,6 +4630,7 @@ function renderGeoA(){
   caption.textContent = onlyHigh ? baseCaption + ' 고등학교만 선택되어 유형별 색상으로 표시합니다.' : baseCaption;
 
   const svg = el('svg', {class:'geo-svg', viewBox: layer.viewBox});
+  geoApplyZoomViewBox(svg, layer, 'a');
   const gPoly = el('g');
   layer.features.forEach(f=>{
     const path = el('path', {class: drilled ? 'geo-emd' : 'geo-sigungu', d: f.d, style:`fill:${geoBgFill()};`});
@@ -4335,7 +4639,12 @@ function renderGeoA(){
       path.addEventListener('mouseenter', showFn);
       path.addEventListener('mousemove', showFn);
       path.addEventListener('mouseleave', hideTooltip);
-      path.addEventListener('click', ()=>{ geoASelectedSig = f.code; renderGeoA(); });
+      path.addEventListener('click', ()=>{
+        if (GEO_DRAG_SUPPRESS['a']) return;
+        geoASelectedSig = f.code;
+        geoZoomOf('a').scale = 1; geoZoomOf('a').cx = null; geoZoomOf('a').cy = null;
+        renderGeoA();
+      });
     } else {
       const showFn = (e)=> showTooltip(e, `<div style="font-weight:700;">${f.name}</div>`);
       path.addEventListener('mouseenter', showFn);
@@ -4348,7 +4657,7 @@ function renderGeoA(){
 
   const gLabel = el('g');
   layer.features.forEach(f=>{
-    const label = el('text', {class: drilled ? 'geo-emd-label' : 'geo-sig-label', x:f.cx, y:f.cy});
+    const label = el('text', {class: drilled ? 'geo-emd-label' : 'geo-sig-label', x:f.cx, y:f.cy, style:`font-size:${geoLabelFontSize('a', drilled?8.5:11)};`});
     label.textContent = drilled ? f.name : shortRegion(f.name);
     gLabel.appendChild(label);
   });
@@ -4472,6 +4781,12 @@ const GEO_B_TOPICS = [
       REGION_ORDER.forEach(r=>{ if (ratios[r] && ratios[r].teacherRatio!=null) out[r] = {value: ratios[r].teacherRatio}; });
       return out;
     },
+    getEmdValues(sigCode, year){
+      const agg = geoEmdSchoolAgg(sigCode, year);
+      const out = {};
+      if (agg) Object.keys(agg).forEach(name=>{ if (agg[name].staffTotal>0) out[name] = {value: Math.round(agg[name].studentsTotal/agg[name].staffTotal*10)/10}; });
+      return out;
+    },
     formatNum(v){ return v==null ? '-' : v.toFixed(1); },
     tooltip(name, year){
       const r = geoCountyRatios(year)[name];
@@ -4492,6 +4807,12 @@ const GEO_B_TOPICS = [
       const ratios = geoCountyRatios(year);
       const out = {};
       REGION_ORDER.forEach(r=>{ if (ratios[r] && ratios[r].classRatio!=null) out[r] = {value: ratios[r].classRatio}; });
+      return out;
+    },
+    getEmdValues(sigCode, year){
+      const agg = geoEmdSchoolAgg(sigCode, year);
+      const out = {};
+      if (agg) Object.keys(agg).forEach(name=>{ if (agg[name].classesTotal>0) out[name] = {value: Math.round(agg[name].studentsTotal/agg[name].classesTotal*10)/10}; });
       return out;
     },
     formatNum(v){ return v==null ? '-' : v.toFixed(1); },
@@ -4518,6 +4839,17 @@ const GEO_B_TOPICS = [
         if (!area) return;
         const count = geoSchoolCountByRegion(year, r);
         out[r] = {value: Math.round((count/area*100)*10)/10};
+      });
+      return out;
+    },
+    getEmdValues(sigCode, year){
+      const emdLayer = GEO_DATA.emdBySig[sigCode];
+      const agg = geoEmdSchoolAgg(sigCode, year);
+      const out = {};
+      if (emdLayer && agg) emdLayer.features.forEach(f=>{
+        const area = geoFeatureAreaKm2(f, emdLayer.transform.scale);
+        const count = agg[f.name] ? agg[f.name].schoolCount : 0;
+        if (area>0) out[f.name] = {value: Math.round((count/area*100)*10)/10};
       });
       return out;
     },
@@ -4573,6 +4905,31 @@ function geoBTopic(){
   return GEO_B_TOPICS.find(t=>t.key === (sel && sel.value)) || GEO_B_TOPICS[0];
 }
 
+let geoBSelectedSig = null;
+function geoBEmdTooltipHtml(topicDef, sigCode, name, year){
+  const agg = geoEmdSchoolAgg(sigCode, year);
+  const a = agg && agg[name];
+  const lines = [`<div style="font-weight:700;margin-bottom:4px;">${name}</div>`];
+  if (!a) { lines.push('<div style="color:#9ca3af;">자료 없음</div>'); return lines.join(''); }
+  if (topicDef.key==='teacherRatio') {
+    if (a.staffTotal>0) {
+      lines.push(`<div>교원 1인당 학생 수: ${(a.studentsTotal/a.staffTotal).toFixed(1)}명</div>`);
+      lines.push(`<div>학생수: ${a.studentsTotal.toLocaleString()}명 · 교원수: ${a.staffTotal.toLocaleString()}명</div>`);
+    } else lines.push('<div style="color:#9ca3af;">자료 없음</div>');
+  } else if (topicDef.key==='classRatio') {
+    if (a.classesTotal>0) {
+      lines.push(`<div>학급당 학생 수: ${(a.studentsTotal/a.classesTotal).toFixed(1)}명</div>`);
+      lines.push(`<div>학생수: ${a.studentsTotal.toLocaleString()}명 · 학급수: ${a.classesTotal.toLocaleString()}개</div>`);
+    } else lines.push('<div style="color:#9ca3af;">자료 없음</div>');
+  } else if (topicDef.key==='schoolDensity') {
+    lines.push(`<div>학교 수: ${a.schoolCount}개</div>`);
+  } else {
+    lines.push('<div style="color:#9ca3af;">읍면동 단위 자료가 없는 주제입니다.</div>');
+    lines.push(`<div>참고 · 학교 수: ${a.schoolCount}개, 학생수: ${a.studentsTotal.toLocaleString()}명</div>`);
+  }
+  return lines.join('');
+}
+
 function renderGeoB(){
   if (!GEO_DATA) return;
   const year = document.getElementById('geo-b-year').value;
@@ -4580,14 +4937,32 @@ function renderGeoB(){
   const container = document.getElementById('geo-b-map');
   const legendEl = document.getElementById('geo-b-legend');
   const captionEl = document.getElementById('geo-b-caption');
+  const barChartEl = document.getElementById('geo-b-bar-chart');
   container.innerHTML = '';
   legendEl.innerHTML = '';
-  if (captionEl) captionEl.textContent = topicDef.caption;
   container.style.background = geoBgFill();
 
+  const drilled = !!geoBSelectedSig;
+  const sigFeature = drilled ? GEO_DATA.sig.features.find(f=>f.code===geoBSelectedSig) : null;
+  const layer = drilled ? GEO_DATA.emdBySig[geoBSelectedSig] : GEO_DATA.sig;
+  const backBtn = geoBackBtnFor('geo-b-map');
+  if (backBtn) backBtn.hidden = !drilled;
+
   const gm = SETTINGS.geoMap;
-  const layer = GEO_DATA.sig;
-  const valuesByName = topicDef.getValues(year);
+  let valuesByName, hasEmdData = true;
+  if (drilled) {
+    if (topicDef.getEmdValues) { valuesByName = topicDef.getEmdValues(geoBSelectedSig, year); }
+    else { valuesByName = {}; hasEmdData = false; }
+  } else {
+    valuesByName = topicDef.getValues(year);
+  }
+  if (captionEl) {
+    captionEl.textContent = !drilled ? topicDef.caption
+      : hasEmdData
+        ? `${sigFeature ? sigFeature.name : ''} 읍면동별 ${topicDef.label}입니다. "전체 지도로" 버튼을 누르면 도 전체 지도로 돌아갑니다.`
+        : `${sigFeature ? sigFeature.name : ''} — '${topicDef.label}'은(는) 읍면동 단위 자료가 없습니다. 마우스를 올리면 참고 정보를 볼 수 있고, "전체 지도로" 버튼을 누르면 돌아갑니다.`;
+  }
+
   const values = layer.features.map(f=> valuesByName[f.name] ? valuesByName[f.name].value : null);
   const validValues = values.filter(v=>v!=null);
   const colors = gm.colors;
@@ -4597,22 +4972,33 @@ function renderGeoB(){
     : geoClassifyBreaks(validValues.length ? validValues : [0], gm.tierCount, gm.method === 'manual' ? 'equal' : gm.method);
 
   const svg = el('svg', {class:'geo-svg', viewBox: layer.viewBox});
+  geoApplyZoomViewBox(svg, layer, 'b');
   const gPoly = el('g');
   layer.features.forEach((f,i)=>{
     const v = values[i];
     const color = v==null ? GEO_B_NO_DATA_COLOR : (colors[geoTierIndex(v, breaks)] || colors[colors.length-1]);
-    const path = el('path', {class:'geo-sigungu no-click', d:f.d, style:`fill:${color};`});
-    const showFn = (e)=> showTooltip(e, topicDef.tooltip(f.name, year));
+    const path = el('path', {class: drilled ? 'geo-emd' : 'geo-sigungu', d:f.d, style:`fill:${color};`});
+    const showFn = (e)=> showTooltip(e, drilled ? geoBEmdTooltipHtml(topicDef, geoBSelectedSig, f.name, year) : topicDef.tooltip(f.name, year));
     path.addEventListener('mouseenter', showFn);
     path.addEventListener('mousemove', showFn);
     path.addEventListener('mouseleave', hideTooltip);
+    if (!drilled) {
+      path.addEventListener('click', ()=>{
+        if (GEO_DRAG_SUPPRESS['b']) return;
+        if (!GEO_DATA.emdBySig[f.code]) return;
+        geoBSelectedSig = f.code;
+        geoZoomOf('b').scale = 1; geoZoomOf('b').cx = null; geoZoomOf('b').cy = null;
+        renderGeoB();
+      });
+    }
     gPoly.appendChild(path);
   });
   svg.appendChild(gPoly);
   const gLabel = el('g');
   layer.features.forEach(f=>{
-    gLabel.appendChild(el('text', {class:'geo-sig-label', x:f.cx, y:f.cy}));
-    gLabel.lastChild.textContent = shortRegion(f.name);
+    const label = el('text', {class: drilled ? 'geo-emd-label' : 'geo-sig-label', x:f.cx, y:f.cy, style:`font-size:${geoLabelFontSize('b', drilled?8.5:11)};`});
+    label.textContent = drilled ? f.name : shortRegion(f.name);
+    gLabel.appendChild(label);
   });
   svg.appendChild(gLabel);
   renderGeoNorthArrow(svg, layer);
@@ -4630,7 +5016,8 @@ function renderGeoB(){
     `<div class="tier"><div class="swatch" style="background:${t.color};"></div><div class="range">${t.label}</div></div>`
   ).join('');
 
-  renderGeoPopBarChart(document.getElementById('geo-b-bar-chart'), year);
+  if (!drilled) renderGeoPopBarChart(barChartEl, year);
+  else barChartEl.innerHTML = '<p class="empty">읍면동 지도로 확대된 상태에서는 표시하지 않습니다. "전체 지도로" 버튼을 눌러주세요.</p>';
 }
 
 /* 시군별 인구 누적 막대그래프: 유소년/청장년/노년, 맨 위 총인구수, 막대 내부에 각 인구수(비율) 표시 */
@@ -4726,6 +5113,7 @@ function renderGeoCLevelChecks(){
   });
 }
 
+let geoCSelectedSig = null;
 function renderGeoC(){
   if (!GEO_DATA) return;
   const year = document.getElementById('geo-c-year').value;
@@ -4734,24 +5122,47 @@ function renderGeoC(){
   container.innerHTML = '';
   container.style.background = geoBgFill();
 
-  const layer = GEO_DATA.sig;
+  const drilled = !!geoCSelectedSig;
+  const layer = drilled ? GEO_DATA.emdBySig[geoCSelectedSig] : GEO_DATA.sig;
+  const sigFeature = drilled ? GEO_DATA.sig.features.find(f=>f.code===geoCSelectedSig) : null;
+  const backBtn = geoBackBtnFor('geo-c-map');
+  if (backBtn) backBtn.hidden = !drilled;
+  const captionEl = document.getElementById('geo-c-caption');
+  if (captionEl) captionEl.textContent = drilled
+    ? `${sigFeature ? sigFeature.name : ''} 읍면동별 소규모학교 분포입니다. "전체 지도로" 버튼을 누르면 도 전체 지도로 돌아갑니다.`
+    : '전체 학생 수가 기준 인원 이하인 소규모학교를 강조 표시합니다. 시군을 클릭하면 읍면동 지도로 확대됩니다.';
+
   const t = layer.transform;
   const activeLevels = Object.keys(geoCLevels).filter(lv=>geoCLevels[lv]);
   const smallCountByRegion = {};
 
   const svg = el('svg', {class:'geo-svg', viewBox: layer.viewBox});
+  geoApplyZoomViewBox(svg, layer, 'c');
   const gPoly = el('g');
   layer.features.forEach(f=>{
-    const path = el('path', {class:'geo-sigungu no-click', d:f.d, style:`fill:${geoBgFill()};`});
+    const path = el('path', {class: drilled ? 'geo-emd' : 'geo-sigungu', d:f.d, style:`fill:${geoBgFill()};`});
     const showFn = (e)=> showTooltip(e, `<div style="font-weight:700;">${f.name}</div><div>소규모학교(${threshold}명 이하): ${smallCountByRegion[f.name]||0}개</div>`);
     path.addEventListener('mouseenter', showFn);
     path.addEventListener('mousemove', showFn);
     path.addEventListener('mouseleave', hideTooltip);
+    if (!drilled) {
+      path.addEventListener('click', ()=>{
+        if (GEO_DRAG_SUPPRESS['c']) return;
+        if (!GEO_DATA.emdBySig[f.code]) return;
+        geoCSelectedSig = f.code;
+        geoZoomOf('c').scale = 1; geoZoomOf('c').cx = null; geoZoomOf('c').cy = null;
+        renderGeoC();
+      });
+    }
     gPoly.appendChild(path);
   });
   svg.appendChild(gPoly);
 
-  const pool = GEO_DATA.schools.filter(s=> activeLevels.includes(s.level));
+  const pool = GEO_DATA.schools.filter(s=>{
+    if (!activeLevels.includes(s.level)) return false;
+    if (drilled && s.region !== sigFeature.name) return false;
+    return true;
+  });
   const gDots = el('g');
   pool.forEach(s=>{
     const rec = SCHOOLS.find(r=>r.name===s.name && r.level===s.level && r.year===Number(year));
@@ -4759,9 +5170,13 @@ function renderGeoC(){
     const isSmall = !!(rec && total>0 && total<=threshold);
     if (isSmall && s.region) smallCountByRegion[s.region] = (smallCountByRegion[s.region]||0) + 1;
     const [x,y] = geoProject(s.x_m, s.y_m, t);
-    const color = isSmall ? '#ef4444' : '#94a3b8';
-    const r = isSmall ? 5.2 : 2.6;
-    const dot = el('circle', {class:'geo-small-school-dot', cx:x.toFixed(2), cy:y.toFixed(2), r, style:`fill:${color};opacity:${isSmall?0.95:0.5}`});
+    const fill = GEO_LEVEL_COLORS[s.level];
+    const r = isSmall ? 5.4 : 3;
+    const dot = el('circle', {
+      class: 'geo-small-school-dot' + (isSmall ? ' is-small' : ''),
+      cx:x.toFixed(2), cy:y.toFixed(2), r,
+      style:`fill:${fill};opacity:${isSmall?1:0.55};stroke:${isSmall?'#ef4444':'#fff'};stroke-width:${isSmall?2.2:1};`
+    });
     const hit = el('circle', {class:'geo-school-hit', cx:x.toFixed(2), cy:y.toFixed(2), r:Math.max(r*2,7)});
     const showFn = (e)=> showTooltip(e, geoSchoolTooltipHtml(s, year) + (rec ? `<div style="margin-top:2px;font-weight:700;color:${isSmall?'#ef4444':'#64748b'};">${isSmall ? '소규모학교' : '일반학교'}</div>` : ''));
     hit.addEventListener('mouseenter', ()=>{ dot.classList.add('is-hover'); });
@@ -4775,8 +5190,8 @@ function renderGeoC(){
   const gLabel = el('g');
   layer.features.forEach(f=>{
     const cnt = smallCountByRegion[f.name] || 0;
-    const label = el('text', {class:'geo-sig-label', x:f.cx, y:f.cy});
-    label.textContent = `${shortRegion(f.name)}${cnt ? ` (${cnt})` : ''}`;
+    const label = el('text', {class: drilled ? 'geo-emd-label' : 'geo-sig-label', x:f.cx, y:f.cy, style:`font-size:${geoLabelFontSize('c', drilled?8.5:11)};`});
+    label.textContent = `${drilled ? f.name : shortRegion(f.name)}${cnt ? ` (${cnt})` : ''}`;
     gLabel.appendChild(label);
   });
   svg.appendChild(gLabel);
@@ -4788,8 +5203,8 @@ function renderGeoC(){
   const legend = document.createElement('div');
   legend.className = 'geo-legend-panel';
   legend.innerHTML = '<div class="legend">' +
-    `<span class="legend-item"><i style="background:#ef4444;"></i>소규모학교(${threshold}명 이하)</span>` +
-    `<span class="legend-item"><i style="background:#94a3b8;"></i>일반학교</span>` +
+    ['초','중','고'].map(lv=>`<span class="legend-item"><i style="background:${GEO_LEVEL_COLORS[lv]};"></i>${LEVEL_NAMES[lv]}</span>`).join('') +
+    `<span class="legend-item"><i style="background:#fff;border:2px solid #ef4444;"></i>소규모(${threshold}명↓)</span>` +
     '</div>';
   container.appendChild(legend);
 }
@@ -4805,10 +5220,23 @@ function geoChangeValues(baseYear, compareYear){
   });
   return out;
 }
+function geoChangeValuesEmd(sigCode, baseYear, compareYear){
+  const baseAgg = geoEmdSchoolAgg(sigCode, baseYear);
+  const cmpAgg = geoEmdSchoolAgg(sigCode, compareYear);
+  const out = {};
+  if (!baseAgg || !cmpAgg) return out;
+  Object.keys(baseAgg).forEach(name=>{
+    const b = baseAgg[name] && baseAgg[name].studentsTotal;
+    const c = cmpAgg[name] && cmpAgg[name].studentsTotal;
+    if (b>0 && c!=null) out[name] = {value: Math.round(((c-b)/b*100)*10)/10, base:b, compare:c};
+  });
+  return out;
+}
 const GEO_D_DIVERGING_COLORS = ['#b91c1c','#f87171','#e2e2df','#7db8f5','#1d4ed8'];
 const GEO_D_DIVERGING_BREAKS = [-15,-5,5,15];
 const GEO_D_DIVERGING_LABELS = ['15% 이상 감소','5~15% 감소','변화 적음(±5%)','5~15% 증가','15% 이상 증가'];
 
+let geoDSelectedSig = null;
 function renderGeoD(){
   if (!GEO_DATA) return;
   const baseYear = document.getElementById('geo-d-year-base').value;
@@ -4821,33 +5249,60 @@ function renderGeoD(){
   legendEl.innerHTML = '';
   container.style.background = geoBgFill();
 
-  const layer = GEO_DATA.sig;
+  const drilled = !!geoDSelectedSig;
+  const layer = drilled ? GEO_DATA.emdBySig[geoDSelectedSig] : GEO_DATA.sig;
+  const sigFeature = drilled ? GEO_DATA.sig.features.find(f=>f.code===geoDSelectedSig) : null;
+  const backBtn = geoBackBtnFor('geo-d-map');
+  if (backBtn) backBtn.hidden = !drilled;
   const t = layer.transform;
   const svg = el('svg', {class:'geo-svg', viewBox: layer.viewBox});
+  geoApplyZoomViewBox(svg, layer, 'd');
+
+  function bindDrillClick(path, f){
+    if (drilled) return;
+    path.addEventListener('click', ()=>{
+      if (GEO_DRAG_SUPPRESS['d']) return;
+      if (!GEO_DATA.emdBySig[f.code]) return;
+      geoDSelectedSig = f.code;
+      geoZoomOf('d').scale = 1; geoZoomOf('d').cx = null; geoZoomOf('d').cy = null;
+      renderGeoD();
+    });
+  }
 
   if (mode === 'diff') {
     const baseSet = new Set(SCHOOLS.filter(s=>s.year===Number(baseYear)).map(s=>s.name+'__'+s.level));
     const compareSet = new Set(SCHOOLS.filter(s=>s.year===Number(compareYear)).map(s=>s.name+'__'+s.level));
-    const newSchools = GEO_DATA.schools.filter(s=> compareSet.has(s.name+'__'+s.level) && !baseSet.has(s.name+'__'+s.level));
-    const closedSchools = GEO_DATA.schools.filter(s=> baseSet.has(s.name+'__'+s.level) && !compareSet.has(s.name+'__'+s.level));
-    const newRegionCount = {}, closedRegionCount = {};
-    newSchools.forEach(s=>{ if (s.region) newRegionCount[s.region]=(newRegionCount[s.region]||0)+1; });
-    closedSchools.forEach(s=>{ if (s.region) closedRegionCount[s.region]=(closedRegionCount[s.region]||0)+1; });
+    let newSchools = GEO_DATA.schools.filter(s=> compareSet.has(s.name+'__'+s.level) && !baseSet.has(s.name+'__'+s.level));
+    let closedSchools = GEO_DATA.schools.filter(s=> baseSet.has(s.name+'__'+s.level) && !compareSet.has(s.name+'__'+s.level));
+    if (drilled) {
+      newSchools = newSchools.filter(s=> s.region === sigFeature.name);
+      closedSchools = closedSchools.filter(s=> s.region === sigFeature.name);
+    }
+    const newAreaCount = {}, closedAreaCount = {};
+    newSchools.forEach(s=>{
+      const key = drilled ? (s.region===sigFeature.name ? (geoFindEmdForPoint(...geoProject(s.x_m,s.y_m,t), layer)||{}).name : null) : s.region;
+      if (key) newAreaCount[key] = (newAreaCount[key]||0)+1;
+    });
+    closedSchools.forEach(s=>{
+      const key = drilled ? (s.region===sigFeature.name ? (geoFindEmdForPoint(...geoProject(s.x_m,s.y_m,t), layer)||{}).name : null) : s.region;
+      if (key) closedAreaCount[key] = (closedAreaCount[key]||0)+1;
+    });
 
     const gPoly = el('g');
     layer.features.forEach(f=>{
-      const path = el('path', {class:'geo-sigungu no-click', d:f.d, style:`fill:${geoBgFill()};`});
-      const showFn = (e)=> showTooltip(e, `<div style="font-weight:700;">${f.name}</div><div>신설 ${newRegionCount[f.name]||0}개교 · 폐교 ${closedRegionCount[f.name]||0}개교</div>`);
+      const path = el('path', {class: drilled ? 'geo-emd' : 'geo-sigungu', d:f.d, style:`fill:${geoBgFill()};`});
+      const showFn = (e)=> showTooltip(e, `<div style="font-weight:700;">${f.name}</div><div>신설 ${newAreaCount[f.name]||0}개교 · 폐교 ${closedAreaCount[f.name]||0}개교</div>`);
       path.addEventListener('mouseenter', showFn);
       path.addEventListener('mousemove', showFn);
       path.addEventListener('mouseleave', hideTooltip);
+      bindDrillClick(path, f);
       gPoly.appendChild(path);
     });
     svg.appendChild(gPoly);
     const gLabel = el('g');
     layer.features.forEach(f=>{
-      const label = el('text', {class:'geo-sig-label', x:f.cx, y:f.cy});
-      label.textContent = shortRegion(f.name);
+      const label = el('text', {class: drilled ? 'geo-emd-label' : 'geo-sig-label', x:f.cx, y:f.cy, style:`font-size:${geoLabelFontSize('d', drilled?8.5:11)};`});
+      label.textContent = drilled ? f.name : shortRegion(f.name);
       gLabel.appendChild(label);
     });
     svg.appendChild(gLabel);
@@ -4874,17 +5329,19 @@ function renderGeoD(){
     });
     svg.appendChild(gMark);
 
-    captionEl.textContent = `${baseYear}년 → ${compareYear}년 사이 신설 ${newSchools.length}개교, 폐교 ${closedSchools.length}개교입니다. (위치 정보가 없는 학교는 표시되지 않을 수 있습니다)`;
+    captionEl.textContent = (drilled ? `${sigFeature.name} — ` : '') + `${baseYear}년 → ${compareYear}년 사이 신설 ${newSchools.length}개교, 폐교 ${closedSchools.length}개교입니다.` + (drilled ? ' "전체 지도로" 버튼을 누르면 도 전체 지도로 돌아갑니다.' : ' (위치 정보가 없는 학교는 표시되지 않을 수 있습니다. 시군을 클릭하면 읍면동 지도로 확대됩니다.)');
     legendEl.innerHTML = `<div class="tier"><div class="swatch" style="background:#16a34a;"></div><div class="range">신설학교</div></div><div class="tier"><div class="swatch" style="background:#dc2626;"></div><div class="range">폐교학교</div></div>`;
   } else {
-    captionEl.textContent = `${baseYear}년 대비 ${compareYear}년 시군별 전체 학생 수 증감률입니다.`;
-    const changeByName = geoChangeValues(baseYear, compareYear);
+    const changeByName = drilled ? geoChangeValuesEmd(geoDSelectedSig, baseYear, compareYear) : geoChangeValues(baseYear, compareYear);
+    captionEl.textContent = drilled
+      ? `${sigFeature.name} 읍면동별 ${baseYear}년 대비 ${compareYear}년 학생 수 증감률입니다. "전체 지도로" 버튼을 누르면 도 전체 지도로 돌아갑니다.`
+      : `${baseYear}년 대비 ${compareYear}년 시군별 전체 학생 수 증감률입니다. 시군을 클릭하면 읍면동 지도로 확대됩니다.`;
     const gPoly = el('g');
     layer.features.forEach(f=>{
       const rec = changeByName[f.name];
       const idx = rec ? geoTierIndex(rec.value, GEO_D_DIVERGING_BREAKS) : null;
       const color = idx==null ? GEO_B_NO_DATA_COLOR : GEO_D_DIVERGING_COLORS[idx];
-      const path = el('path', {class:'geo-sigungu no-click', d:f.d, style:`fill:${color};`});
+      const path = el('path', {class: drilled ? 'geo-emd' : 'geo-sigungu', d:f.d, style:`fill:${color};`});
       const showFn = (e)=>{
         const lines = [`<div style="font-weight:700;margin-bottom:4px;">${f.name}</div>`];
         if (rec) {
@@ -4898,13 +5355,14 @@ function renderGeoD(){
       path.addEventListener('mouseenter', showFn);
       path.addEventListener('mousemove', showFn);
       path.addEventListener('mouseleave', hideTooltip);
+      bindDrillClick(path, f);
       gPoly.appendChild(path);
     });
     svg.appendChild(gPoly);
     const gLabel = el('g');
     layer.features.forEach(f=>{
-      const label = el('text', {class:'geo-sig-label', x:f.cx, y:f.cy});
-      label.textContent = shortRegion(f.name);
+      const label = el('text', {class: drilled ? 'geo-emd-label' : 'geo-sig-label', x:f.cx, y:f.cy, style:`font-size:${geoLabelFontSize('d', drilled?8.5:11)};`});
+      label.textContent = drilled ? f.name : shortRegion(f.name);
       gLabel.appendChild(label);
     });
     svg.appendChild(gLabel);
@@ -4932,6 +5390,19 @@ function geoRegionLevelStudentCounts(year){
   return map;
 }
 
+function geoLevelBreakdownTooltipHtml(name, levelCounts, total){
+  const lines = [`<div style="font-weight:700;margin-bottom:4px;">${name}</div>`];
+  if (!total) { lines.push('<div style="color:#9ca3af;">해당 연도 자료 없음</div>'); return lines.join(''); }
+  ['초','중','고'].forEach(lv=>{
+    const v = levelCounts[lv] || 0;
+    const pct = total ? (v/total*100).toFixed(1) : '0.0';
+    lines.push(`<div>${LEVEL_NAMES[lv]}: ${v.toLocaleString()}명 (${pct}%)</div>`);
+  });
+  lines.push(`<div style="margin-top:2px;font-weight:700;">전체: ${total.toLocaleString()}명</div>`);
+  return lines.join('');
+}
+
+let geoESelectedSig = null;
 function renderGeoE(){
   if (!GEO_DATA) return;
   const year = document.getElementById('geo-e-year').value;
@@ -4939,17 +5410,49 @@ function renderGeoE(){
   container.innerHTML = '';
   container.style.background = geoBgFill();
 
-  const layer = GEO_DATA.sig;
-  const counts = geoRegionLevelStudentCounts(year);
+  const drilled = !!geoESelectedSig;
+  const layer = drilled ? GEO_DATA.emdBySig[geoESelectedSig] : GEO_DATA.sig;
+  const sigFeature = drilled ? GEO_DATA.sig.features.find(f=>f.code===geoESelectedSig) : null;
+  const backBtn = geoBackBtnFor('geo-e-map');
+  if (backBtn) backBtn.hidden = !drilled;
+  const captionEl = document.getElementById('geo-e-caption');
+
+  const LEVEL_ORDER = ['초','중','고'];
+  let counts, names;
+  if (drilled) {
+    const agg = geoEmdSchoolAgg(geoESelectedSig, year) || {};
+    counts = {};
+    names = layer.features.map(f=>f.name);
+    names.forEach(n=>{ counts[n] = (agg[n] && agg[n].byLevel) || {'초':0,'중':0,'고':0}; });
+    if (captionEl) captionEl.textContent = `${sigFeature ? sigFeature.name : ''} 읍면동별 초·중·고 재학생 비율입니다. "전체 지도로" 버튼을 누르면 도 전체 지도로 돌아갑니다.`;
+  } else {
+    counts = geoRegionLevelStudentCounts(year);
+    names = REGION_ORDER;
+    if (captionEl) captionEl.textContent = '시군마다 초·중·고 재학생 비율을 원형그래프로 표시합니다. 원의 크기는 전체 재학생 수에 비례하며, 시군 영역에 마우스를 올리면 학교급별 학생수를 볼 수 있습니다.';
+  }
   const totals = {};
-  REGION_ORDER.forEach(r=>{ totals[r] = counts[r]['초']+counts[r]['중']+counts[r]['고']; });
+  names.forEach(n=>{ totals[n] = (counts[n]['초']||0)+(counts[n]['중']||0)+(counts[n]['고']||0); });
   const maxTotal = Math.max(1, ...Object.values(totals));
   const minR = 10, maxR = 32;
 
   const svg = el('svg', {class:'geo-svg', viewBox: layer.viewBox});
+  geoApplyZoomViewBox(svg, layer, 'e');
   const gPoly = el('g');
   layer.features.forEach(f=>{
-    const path = el('path', {class:'geo-sigungu no-click', d:f.d, style:`fill:${geoBgFill()};`});
+    const path = el('path', {class: drilled ? 'geo-emd' : 'geo-sigungu', d:f.d, style:`fill:${geoBgFill()};`});
+    const showFn = (e)=> showTooltip(e, geoLevelBreakdownTooltipHtml(f.name, counts[f.name]||{}, totals[f.name]||0));
+    path.addEventListener('mouseenter', showFn);
+    path.addEventListener('mousemove', showFn);
+    path.addEventListener('mouseleave', hideTooltip);
+    if (!drilled) {
+      path.addEventListener('click', ()=>{
+        if (GEO_DRAG_SUPPRESS['e']) return;
+        if (!GEO_DATA.emdBySig[f.code]) return;
+        geoESelectedSig = f.code;
+        geoZoomOf('e').scale = 1; geoZoomOf('e').cx = null; geoZoomOf('e').cy = null;
+        renderGeoE();
+      });
+    }
     gPoly.appendChild(path);
   });
   svg.appendChild(gPoly);
@@ -4957,14 +5460,13 @@ function renderGeoE(){
   const gLabel = el('g');
   layer.features.forEach(f=>{
     const r = minR + (maxR-minR)*Math.sqrt((totals[f.name]||0)/maxTotal);
-    const label = el('text', {class:'geo-sig-label', x:f.cx, y:f.cy - r - 8});
-    label.textContent = shortRegion(f.name);
+    const label = el('text', {class: drilled ? 'geo-emd-label' : 'geo-sig-label', x:f.cx, y:f.cy - r - 8, style:`font-size:${geoLabelFontSize('e', drilled?8.5:11)};`});
+    label.textContent = drilled ? f.name : shortRegion(f.name);
     gLabel.appendChild(label);
   });
   svg.appendChild(gLabel);
 
   const gPie = el('g', {class:'geo-pie-donut'});
-  const LEVEL_ORDER = ['초','중','고'];
   layer.features.forEach(f=>{
     const total = totals[f.name] || 0;
     if (!total) return;
@@ -4974,7 +5476,7 @@ function renderGeoE(){
     const circumference = 2*Math.PI*ringR;
     let offsetAcc = 0;
     LEVEL_ORDER.forEach(lv=>{
-      const v = counts[f.name][lv] || 0;
+      const v = (counts[f.name] && counts[f.name][lv]) || 0;
       if (!v) return;
       const frac = v/total;
       const dash = frac*circumference;
@@ -4988,6 +5490,13 @@ function renderGeoE(){
         `<div style="font-weight:700;margin-bottom:4px;">${f.name}</div><div>${LEVEL_NAMES[lv]}: ${v.toLocaleString()}명 (${(frac*100).toFixed(1)}%)</div><div>전체 재학생: ${total.toLocaleString()}명</div>`));
       circle.addEventListener('mouseleave', hideTooltip);
       gPie.appendChild(circle);
+      if (frac > 0.08 && r >= 14) {
+        const midAngle = (offsetAcc + dash/2) / circumference * 2*Math.PI - Math.PI/2;
+        const lx = f.cx + ringR*Math.cos(midAngle), ly = f.cy + ringR*Math.sin(midAngle);
+        const segLabel = el('text', {x:lx, y:ly, 'text-anchor':'middle', 'dominant-baseline':'middle', class:'geo-donut-seg-label', style:`font-size:${Math.max(6, Math.min(9, strokeW*0.5)).toFixed(1)}px;`});
+        segLabel.textContent = r >= 22 ? `${v.toLocaleString()}명(${(frac*100).toFixed(0)}%)` : `${(frac*100).toFixed(0)}%`;
+        gPie.appendChild(segLabel);
+      }
       offsetAcc += dash;
     });
   });
@@ -5018,7 +5527,11 @@ function initGeoView(){
   document.getElementById('geo-a-year').addEventListener('change', renderGeoA);
   document.getElementById('geo-b-year').addEventListener('change', renderGeoB);
   document.getElementById('geo-b-topic').addEventListener('change', renderGeoB);
-  document.getElementById('geo-a-back').addEventListener('click', ()=>{ geoASelectedSig = null; renderGeoA(); });
+  document.getElementById('geo-a-back').addEventListener('click', ()=>{
+    geoASelectedSig = null;
+    geoZoomOf('a').scale = 1; geoZoomOf('a').cx = null; geoZoomOf('a').cy = null;
+    renderGeoA();
+  });
   document.getElementById('geo-a-dotsize').addEventListener('input', (e)=>{
     geoADotScale = parseFloat(e.target.value);
     document.getElementById('geo-a-dotsize-label').textContent = geoADotScale.toFixed(1) + 'x';
@@ -5031,6 +5544,21 @@ function initGeoView(){
   document.getElementById('geo-d-year-compare').addEventListener('change', renderGeoD);
   document.getElementById('geo-d-mode').addEventListener('change', renderGeoD);
   document.getElementById('geo-e-year').addEventListener('change', renderGeoE);
+
+  setupGeoMapChrome('a', 'geo-a-map', renderGeoA, {filenameBase:'강원_학교분포지도'});
+  setupGeoMapChrome('b', 'geo-b-map', renderGeoB, {drillable:true, filenameBase:'강원_단계구분도', onBack: ()=>{
+    geoBSelectedSig = null; geoZoomOf('b').scale = 1; geoZoomOf('b').cx = null; geoZoomOf('b').cy = null; renderGeoB();
+  }});
+  setupGeoMapChrome('c', 'geo-c-map', renderGeoC, {drillable:true, filenameBase:'강원_소규모학교지도', onBack: ()=>{
+    geoCSelectedSig = null; geoZoomOf('c').scale = 1; geoZoomOf('c').cx = null; geoZoomOf('c').cy = null; renderGeoC();
+  }});
+  setupGeoMapChrome('d', 'geo-d-map', renderGeoD, {drillable:true, filenameBase:'강원_연도별변화지도', onBack: ()=>{
+    geoDSelectedSig = null; geoZoomOf('d').scale = 1; geoZoomOf('d').cx = null; geoZoomOf('d').cy = null; renderGeoD();
+  }});
+  setupGeoMapChrome('e', 'geo-e-map', renderGeoE, {drillable:true, filenameBase:'강원_학교급별비율지도', onBack: ()=>{
+    geoESelectedSig = null; geoZoomOf('e').scale = 1; geoZoomOf('e').cx = null; geoZoomOf('e').cy = null; renderGeoE();
+  }});
+
   renderGeoA();
   renderGeoB();
   renderGeoC();
@@ -5102,6 +5630,17 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   } catch(e) {
     console.warn('GEO DATA를 불러오지 못했습니다:', e.message);
   }
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    const hasLocalGeoOverride = !!(raw && JSON.parse(raw).geoMap);
+    if (!hasLocalGeoOverride) {
+      const shared = await loadSharedGeoSettings();
+      if (shared) {
+        SETTINGS.geoMap = Object.assign({}, SETTINGS.geoMap, shared);
+        if (GEO_INIT) { renderGeoA(); renderGeoB(); renderGeoC(); renderGeoD(); renderGeoE(); }
+      }
+    }
+  } catch(e) { console.warn('공유 지도 설정을 불러오지 못했습니다:', e.message); }
 });
 </script>
 </body>
