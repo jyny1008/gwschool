@@ -2958,7 +2958,11 @@ function renderAdminPanel(){
       </div>
       <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
         <p class="sub" style="margin:0 0 8px;">"설정 저장" 버튼을 누르면 지금 위에서 설정한 지도 배경색·단계 수·구분기준·색상·구간값이 깃허브 저장소에 저장되어 다른 방문자에게도 동일하게 보여집니다. (저장하려면 아래 "깃허브에 자동 저장" 카드에서 저장소·토큰을 먼저 등록해야 합니다)</p>
-        <button id="btn-geo-settings-save" class="btn primary">설정 저장 (모두에게 적용)</button>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+          <button id="btn-geo-settings-save" class="btn primary">설정 저장 (모두에게 적용)</button>
+          <button id="btn-geo-settings-download" class="btn">geo_settings.json 다운로드</button>
+        </div>
+        <p class="sub" style="margin:8px 0 0;">토큰 없이 직접 배포하려면 "geo_settings.json 다운로드"로 파일을 받아 저장소의 <code>geo</code> 폴더에 넣고 평소처럼 git으로 커밋·푸시하세요.</p>
         <p id="geo-settings-save-status" class="upload-status" hidden></p>
       </div>
     </div>
@@ -3131,6 +3135,7 @@ function renderAdminPanel(){
     if (GEO_INIT) renderGeoB();
   });
   document.getElementById('btn-geo-settings-save').addEventListener('click', saveGeoSettingsToGithub);
+  document.getElementById('btn-geo-settings-download').addEventListener('click', exportGeoSettingsJSON);
   renderGeoColorRow();
   if (SETTINGS.geoMap.method === 'manual') renderGeoManualBreakRow();
   renderAdminTable();
@@ -3393,6 +3398,16 @@ function exportDataJSON(){
   if (statusEl) {
     statusEl.className = 'upload-status success';
     statusEl.textContent = '다운로드 완료! 이 파일로 저장소의 data.json을 교체하고 커밋·푸시하면 모든 방문자에게 반영됩니다.';
+  }
+}
+
+function exportGeoSettingsJSON(){
+  triggerDownload('geo_settings.json', JSON.stringify(SETTINGS.geoMap, null, 2), 'application/json;charset=utf-8;');
+  const statusEl = document.getElementById('geo-settings-save-status');
+  if (statusEl) {
+    statusEl.hidden = false;
+    statusEl.className = 'upload-status success';
+    statusEl.textContent = '다운로드 완료! 이 파일을 저장소의 geo/geo_settings.json 자리에 넣고 커밋·푸시하면 모든 방문자에게 반영됩니다.';
   }
 }
 
