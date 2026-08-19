@@ -1,0 +1,27 @@
+{
+  "tierCount": 5,
+  "method": "manual",
+  "colors": [
+    "#f958a6",
+    "#f990c3",
+    "#f4c3cf",
+    "#efd7df",
+    "#f5f0f2"
+  ],
+  "bgColor": "#f4f1ea",
+  "bgTransparent": true,
+  "manualBreaks": {
+    "population": [
+      89200.4,
+      158042.8,
+      226885.19999999998,
+      295727.6
+    ],
+    "teacherRatio": [
+      6,
+      7,
+      8,
+      9
+    ]
+  }
+}
